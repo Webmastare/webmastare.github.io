@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KfKbandvagn</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script src="script.js" defer></script>
+    <script src="animations.js" defer></script>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="dropDownStyle.css" />
+    <script defer src="initDB.js"></script>
+
+    <link
+      href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <h1>KfKbandvagn</h1>
+    <hr />
+    <div class="meny-val-container">
+      <div>
+        <p><span id="signed-in-status">Ej Inloggad</span></p>
+      </div>
+      <div class="mode-selector-container dropdown">
+        <button class="dropbtn">Uppgraderingar</button>
+        <div class="dropdown-content">
+          <div class="userinfo-container">
+            <p class="upgrade-dropdown" style="display: block">
+              Handlingspoäng: <span id="tokens-text">0</span> Hp
+            </p>
+            <div class="upgrade-dropdown">
+              <button
+                onclick="doAction('life')"
+                class="other-buttons"
+                id="upgrade-lives-button"
+              >
+                &#9825; <span id="lives-text">3</span>
+              </button>
+              <div class="upgrade-dropdown-content">
+                <p>Lägg till ett hjärta &#9825; <br /></p>
+                <hr />
+                <p>Kostar 3 Hp</p>
+              </div>
+            </div>
+            <div class="upgrade-dropdown">
+              <button
+                onclick="doAction('range')"
+                class="other-buttons"
+                id="upgrade-range-button"
+              >
+                Räckvidd <span id="range-text">2</span>
+              </button>
+              <div class="upgrade-dropdown-content">
+                <p>Utöka räckvidd med ett block</p>
+                <hr />
+                <p>Kostar 3 Hp</p>
+              </div>
+            </div>
+          </div>
+          <!--<form action="" class="dropdown-form">
+            <div class="dropdown-item">
+              <input
+                type="radio"
+                name="mode"
+                id="investigate-radio"
+                data-mode="i"
+                checked
+              />
+              <label for="investigate-radio">Undersök</label><br />
+            </div>
+            <div class="dropdown-item">
+              <input
+                type="radio"
+                name="mode"
+                id="doaction-radio"
+                data-mode="a"
+              />
+              <label for="doaction-radio">Strid</label><br />
+            </div>
+          </form>
+          <a href="#">Link 1</a>
+          <a href="#">Link 2</a>
+          <a href="#">Link 3</a>-->
+        </div>
+      </div>
+      <div class="login-create">
+        <button
+          onclick="showLoginCreate(this)"
+          id="show-login-button"
+          class="other-buttons"
+        >
+          Logga In
+        </button>
+        <button
+          onclick="showLoginCreate(this)"
+          id="show-create-button"
+          class="other-buttons"
+        >
+          Skapa Konto
+        </button>
+      </div>
+    </div>
+    <div class="input-data">
+      <!--Login-->
+      <div class="login-container hidden-login-container" id="login-container">
+        <button
+          id="show-login-button"
+          class="close-window-button"
+          onclick="showLoginCreate(this)"
+        >
+          <i class="bx bx-x"></i>
+        </button>
+
+        <form action="javascript:logIn()">
+          <p>Logga In</p>
+
+          <div class="input-box">
+            <input
+              type="email"
+              name=""
+              id="email-input-login"
+              placeholder="E-post"
+              required
+            />
+            <i class="bx bxs-envelope"></i>
+          </div>
+          <div class="input-box">
+            <input
+              type="password"
+              name=""
+              id="password-input"
+              placeholder="Lösenord"
+              required
+            />
+            <i class="bx bxs-lock-alt"></i>
+          </div>
+
+          <button type="submit">Logga In</button>
+          <p id="error-message-login" class="error-message">Felmeddelande</p>
+        </form>
+      </div>
+      <!--Create bandvagn for existing user-->
+      <div
+        class="create-band-container hidden-login-container"
+        id="create-band-container"
+      >
+        <button
+          id="show-newband-button"
+          class="close-window-button"
+          onclick="showLoginCreate(this)"
+        >
+          <i class="bx bx-x"></i>
+        </button>
+        <p id="error-message-first-band" class="error-message">Felmeddelande</p>
+        <form action="javascript:createBandvagn()">
+          <p style="margin: 0px">Skapa Konto</p>
+          <p style="margin: 10px 0px; font-size: small">
+            Lediga vagnar: <span id="free-wagons"></span>
+          </p>
+          <div class="input-box">
+            <input
+              type="text"
+              name=""
+              id="username-input-band"
+              placeholder="Användarnamn"
+              required
+            />
+            <i class="bx bxs-user"></i>
+          </div>
+
+          <div class="input-box">
+            <p style="margin-bottom: 0px; display: inline">Färg:</p>
+            <input type="color" id="color-input-band" value="#12ce36" />
+          </div>
+          <button type="submit">Skapa Bandvagn</button>
+          <p id="error-message-band" class="error-message">Felmeddelande</p>
+        </form>
+      </div>
+      <!--Create Account-->
+      <div
+        class="create-account-container hidden-login-container"
+        id="create-account-container"
+      >
+        <button
+          id="show-create-button"
+          class="close-window-button"
+          onclick="showLoginCreate(this)"
+        >
+          <i class="bx bx-x"></i>
+        </button>
+        <form action="javascript:createAccount()">
+          <p style="margin: 0px">Skapa Konto</p>
+          <p style="margin: 10px 0px; font-size: small">
+            Lediga vagnar: <span id="free-wagons"></span>
+          </p>
+          <div class="input-box">
+            <input
+              type="email"
+              name=""
+              id="email-input-create"
+              placeholder="E-post"
+              required
+            />
+            <i class="bx bxs-envelope"></i>
+          </div>
+
+          <div class="input-box">
+            <input
+              type="password"
+              name=""
+              id="password-input-create"
+              placeholder="Lösenord"
+              required
+            />
+            <i class="bx bxs-lock-alt"></i>
+          </div>
+          <p
+            style="
+              margin: 0px;
+              font-size: x-small;
+              background-color: #ee445559;
+              border-radius: 5px;
+            "
+          >
+            Minst 6 tecken långt
+          </p>
+          <div class="input-box">
+            <input
+              type="text"
+              name=""
+              id="username-input-create"
+              placeholder="Användarnamn"
+              required
+            />
+            <i class="bx bxs-user"></i>
+          </div>
+
+          <div style="display: none">
+            <p>Om lösenorders säkerhet</p>
+            <p style="font-size: small; font-weight: 600">
+              OBS! Lösenordets säkerhet kan inte garanteras. <br />Använd ett
+              lösenord du ej är rädd om!
+            </p>
+          </div>
+          <div class="input-box">
+            <p style="margin-bottom: 0px; display: inline">Färg:</p>
+            <input type="color" id="color-input-create" value="#12ce36" />
+          </div>
+          <button type="submit">Skapa Konto</button>
+          <p id="error-message-create" class="error-message">Felmeddelande</p>
+        </form>
+      </div>
+    </div>
+
+    <div class="canvas-container" style="position: relative">
+      <canvas id="canvas"></canvas>
+      <div id="popup" class="popup" style="display: none">
+        <p id="popup-position-text"></p>
+        <div id="popup-other-player-container">
+          <p id="popup-health-text"></p>
+          <button onclick="doAction('shot')" id="popup-takeshot-button">
+            Skjut
+          </button>
+        </div>
+        <div id="move-user-container">
+          <button onclick="movePlayer(this)" data-move="up">&#8593;</button>
+          <div>
+            <button onclick="movePlayer(this)" data-move="left">&#8592;</button>
+            <button onclick="movePlayer(this)" data-move="right">
+              &#8594;
+            </button>
+          </div>
+          <button onclick="movePlayer(this)" data-move="down">&#8595;</button>
+        </div>
+      </div>
+    </div>
+
+    <button
+      class="other-buttons"
+      style="width: 160px"
+      onclick="resetCanvasPos()"
+    >
+      Återställ Position
+    </button>
+
+    <div id="rules">
+      <p>Regler</p>
+    </div>
+  </body>
+</html>
