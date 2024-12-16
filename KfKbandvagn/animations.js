@@ -1,10 +1,14 @@
 class explosion {
-    constructor(row, col) {
+    constructor(row, col, type) {
         this.y = (row+0.5)*cellSize;
         this.x = (col+0.5)*cellSize;
         
         this.particles = [];
-        this.createExplosion();
+        if (type === 'explosion') {
+            this.createExplosion();
+        } else if (type === 'click') {
+            this.createClickAnimation();
+        }
     }
 
     createExplosion(){
@@ -27,6 +31,26 @@ class explosion {
                 color = `hsl(${hue}, 100%, 50%)`;
                 speed = 1 + Math.random() * ((hue / 60) * 5); // Faster for brighter particles
             }
+
+            this.particles.push({
+                x: this.x,
+                y: this.y,
+                dx: Math.cos(angle)*speed,
+                dy: Math.sin(angle)*speed,
+                radius: radius,
+                color: color,
+                alpha:1
+            })
+        }
+    }
+    createClickAnimation() {
+        const numParticles = Math.floor(100+Math.random()*50);
+
+        for (let i = 0; i < numParticles; i++) {
+            const angle = Math.random() * Math.PI*2;
+            const speed = Math.random()*2.5+0.1;
+            const radius = Math.random()*2 + 1;
+            const color = `hsl(${20}, 100%, 50%)`;
 
             this.particles.push({
                 x: this.x,

@@ -485,7 +485,10 @@ async function doAction(action, moveDirection = null) {
         document.getElementById('lives-text').innerHTML = userPlayer.lives;
         if (data.shotData) {
             // Update targeted player
-            selectedCell.selectedPlayer = data.shotData;
+            const p = selectedCell.selectedPlayer.position;
+            selectedCell.explosion = new explosion(p.row, p.column, 'explosion')
+            selectedCell.selectedPlayer.lives = data.shotData.lives;
+            showPopup(p.column, p.row, selectedCell.selectedPlayer);
         }
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
@@ -597,7 +600,6 @@ window.onload = async function () {
     window.addEventListener('resize', resizeCanvas);
     
     await getPlayerData();
-    userPlayer = players[0];
     intervalID = setInterval(update, 1000/60);
 }
 
@@ -715,7 +717,10 @@ function draw() {
             ctx.fill();
         }
 
-        selectedCell.explostion.updateParticles();
+        selectedCell.clickAnimation.updateParticles();
+        if (selectedCell.explosion !== undefined) {
+            selectedCell.explosion.updateParticles();
+        }
     }
 
 
@@ -761,7 +766,7 @@ function handleCellClick(clickedRow, clickedColumn) {
             }
             selectedCell = {x : clickedColumn, y : clickedRow}
             
-            selectedCell.explostion = new explosion(clickedRow, clickedColumn);
+            selectedCell.clickAnimation = new explosion(clickedRow, clickedColumn, 'click');
             // See if there is any player at the pressed cell
             let selectedPlayer = players.find(player => {
                 return player.position.row === selectedCell.y && player.position.column === selectedCell.x;
