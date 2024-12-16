@@ -2,8 +2,10 @@ class explosion {
     constructor(row, col, type) {
         this.y = (row+0.5)*cellSize;
         this.x = (col+0.5)*cellSize;
+        this.iterations = 1;
         
         this.particles = [];
+        this.type = type;
         if (type === 'explosion') {
             this.createExplosion();
         } else if (type === 'click') {
@@ -84,5 +86,11 @@ class explosion {
             ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI*2);
             ctx.fill();
         });
+
+        if (this.type === 'explosion') {
+            offsetX = 30 * Math.sin(this.iterations)/this.iterations;
+            offsetY = 30 * Math.sin(this.iterations)/this.iterations;
+        }
+        this.iterations++;
     }
 }

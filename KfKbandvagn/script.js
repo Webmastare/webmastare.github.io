@@ -3,8 +3,8 @@ function resizeCanvas() {
     const windowWidth = window.innerWidth;
 
     // Limit canvas width something of window width
-    const maxWidth = 0.6;
-    const maxHeight = 0.5;
+    const maxWidth = 0.95;
+    const maxHeight = 0.75;
     const whRatio = gameRows/gameCols;
     const stdHeight = Math.min(windowWidth * maxWidth * whRatio, windowHeight * maxHeight);
     let canvasWidth = stdHeight/whRatio;
@@ -202,7 +202,9 @@ async function createAccount() {
         signInStatusText.innerHTML = `Inloggad som \n ${data.data.playerID}`;
         
         userPlayer = players.find(player => player.uuid == data.data.uuid);
-        userPlayer = data.data;
+        userPlayer.color = data.data.color;
+        offsetX = (userPlayer.position.column-2) * cellSize;
+        offsetY = (userPlayer.position.row-2) * cellSize;
         document.getElementById('range-text').innerHTML = userPlayer.range;
         document.getElementById('lives-text').innerHTML = userPlayer.lives;
         console.log(userPlayer);
@@ -232,6 +234,11 @@ async function createBandvagn() {
         signInStatusText.innerHTML = `Inloggad som \n ${data.data.playerID}`;
         
         userPlayer = players.find(player => player.uuid == data.data.uuid);
+        userPlayer.color = data.data.color;
+        offsetX = (userPlayer.position.column-2) * cellSize;
+        offsetY = (userPlayer.position.row-2) * cellSize;
+        document.getElementById('range-text').innerHTML = userPlayer.range;
+        document.getElementById('lives-text').innerHTML = userPlayer.lives;
         console.log(userPlayer);
         showLoginCreate("create-band-container");
     } catch (error) {
@@ -251,7 +258,9 @@ async function getPlayerData() {
         console.log('API res:',data);
         // console.log('Position', data[1], data[1]['position'], data[1]['position']['column'])
         players = data;
-        document.getElementById('free-wagons').innerHTML = players.filter(player => player.playerID == "No-player").length;
+        document.querySelectorAll('#free-wagons').forEach(t => {
+            t.innerHTML = players.filter(player => player.taken_tank === false).length;
+        })
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
     }
@@ -528,7 +537,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // Ändra till https://webmasteriet.vercel.app
-const APIendpoint = "http://localhost:3333";
+const APIendpoint = "https://webmasteriet.vercel.app";
 const ratio = Math.ceil(window.devicePixelRatio);
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
