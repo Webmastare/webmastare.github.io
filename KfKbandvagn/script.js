@@ -633,7 +633,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // Ändra till https://webmasteriet.vercel.app
-const APIendpoint = "http://localhost:3333";
+const APIendpoint = "https://webmasteriet.vercel.app";
 const ratio = Math.ceil(window.devicePixelRatio);
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
