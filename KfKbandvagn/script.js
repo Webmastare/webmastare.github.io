@@ -19,14 +19,62 @@ function resizeCanvas() {
 
     // Set canvas dimensions
     cellSize = STDcellSize;
+    ctx.imageSmoothingEnabled = false;
     draw();
+    fixCrosses();
 }
 
 function resetCanvasPos() {
     zoomLevel = 1;
     offsetX = 0;
     offsetY = 0;
+    if (currentUserID !== 0) {
+        // Reset to user
+        const xAdj = (canvas.width / (cellSize*ratio)) / 2;
+        const yAdj = (canvas.height / (cellSize*ratio)) / 2;
+        offsetX = -Math.max(userPlayer.position.column-xAdj,0)*cellSize;
+        offsetY = -Math.max(userPlayer.position.row-yAdj,0)*cellSize;
+    }
     draw();
+}
+
+function fixCrosses() {
+    const crossPar = document.querySelectorAll(".not-added-yet");
+    crossPar.forEach(p => {
+        // Clear old divs
+        const oldDivs = p.querySelectorAll("div");
+
+        const boundRect = p.getBoundingClientRect();
+        const hyp = Math.sqrt(boundRect.width**2 + boundRect.height**2)
+        const angle = Math.atan2(boundRect.height, boundRect.width) * 180 / Math.PI;
+        let cross1, cross2;
+        if (oldDivs.length < 2) {
+            cross1 = document.createElement('div');
+            cross2 = document.createElement('div');
+        } else {
+            cross1 = oldDivs[0];
+            cross2 = oldDivs[1];
+        }
+        
+        cross1.classList.add('left-cross')
+        cross1.style.width = `${hyp}px`;
+        cross2.style.width = `${hyp}px`;
+        cross1.style.rotate = `${angle}deg`;
+        cross1.style.webkittransform = `${angle}deg`;
+        cross2.style.rotate = `${-angle}deg`;
+        cross2.style.webkittransform = `${-angle}deg`;
+        p.appendChild(cross1);
+        p.appendChild(cross2);
+    });
+}
+
+function showPassword(targetID) {
+    const target = document.getElementById(targetID);
+    if (target.type === "password") {
+        target.type = "text";
+    }else {
+        target.type = "password";
+    }
 }
 
 function showLoginCreate(target) {
@@ -48,6 +96,7 @@ function showLoginCreate(target) {
         };
         formToToggle = forms[buttonToFormMap[target.id]];
     }
+    if (formToToggle == forms["login-container"]) {getCookie()}
 
     if (formToToggle) {
         // Hide all forms except the one being toggled
@@ -66,6 +115,7 @@ function displayError(error) {
     const createError = document.getElementById('error-message-create');
     const loginError = document.getElementById('error-message-login');
     const createBandError = document.getElementById('error-message-first-band');
+    
     loginError.style.display = 'none';
     createError.style.display = 'none';
     clearTimeout(errorTimer);
@@ -136,6 +186,25 @@ function displayError(error) {
     }
 }
 
+function displayMessage(messageId = "") {
+    const messageContainerElements = document.getElementById('messages-container').children;
+    Array.from(messageContainerElements).forEach(e => {e.style.display = 'none'});
+
+    switch (messageId) {
+        case "player-dead": {
+            document.getElementById('dead-message').style.display = 'block';
+            break;
+        }
+        case "player_already_dead": {
+            // After shot targeted player was dead
+            console.error("Player already dead");
+        }
+        default: {
+            break;
+        }
+    }
+}
+
 async function logIn() {
     const email = document.getElementById('email-input-login').value;
     const password = document.getElementById('password-input').value;
@@ -163,10 +232,38 @@ async function logIn() {
         userPlayer = players.find(player => player.uuid == data.user.uuid);
         document.getElementById('range-text').innerHTML = userPlayer.range;
         document.getElementById('lives-text').innerHTML = userPlayer.lives;
+        document.getElementById('tokens-text').innerHTML = userPlayer.tokens;
+        if (userPlayer.lives <= 0) {displayMessage("player-dead")}
         console.log(userPlayer);
         showLoginCreate("login-container");
+        document.getElementById('signed-in-dropdown').style.display = 'grid';
+        document.getElementById('not-signed-in-dropdown').style.display = 'none';
+        document.getElementById('logout-button').style.display = 'inline-block';
+        document.getElementById('show-login-button').style.display = 'none';
+        resetCanvasPos();
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
+    }
+}
+
+async function logOut() {
+    // Logga ut
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+        console.error('Error signing out:', error);
+        displayError('error_signout')
+        return;
+    } else {
+        console.log('User signed out successfully');
+        currentUserID = 0;
+        userPlayer = null;
+        signInStatusText.innerHTML = "Du är utloggad!";
+        document.getElementById('signed-in-dropdown').style.display = 'grid';
+        document.getElementById('not-signed-in-dropdown').style.display = 'none';
+        document.getElementById('logout-button').style.display = 'none';
+        document.getElementById('show-login-button').style.display = 'inline-block';
+        resetCanvasPos();
+        return;
     }
 }
 
@@ -182,43 +279,29 @@ async function createAccount() {
         displayError(error)
         return;
     }
-
-    const createDetails = {playerID : playerID, color : color, user_id : user.id};
-    console.log(createDetails);
+    currentUserID = user.id;
     
     try {
-        const response = await fetch(`${APIendpoint}/createKfKbandvagn`, {method: "PATCH", headers: {
-            'Content-Type': 'application/json'
-        }, body: JSON.stringify(createDetails)});
-
-        if (!response.ok) {
-            console.log(data.error);
-            //displayError();
-            throw new Error('Network response was not ok');
-        }
-        const data = await response.json();
-        console.log(data.data)
-
-        signInStatusText.innerHTML = `Inloggad som \n ${data.data.playerID}`;
-        
-        userPlayer = players.find(player => player.uuid == data.data.uuid);
-        userPlayer.color = data.data.color;
-        offsetX = (userPlayer.position.column-2) * cellSize;
-        offsetY = (userPlayer.position.row-2) * cellSize;
-        document.getElementById('range-text').innerHTML = userPlayer.range;
-        document.getElementById('lives-text').innerHTML = userPlayer.lives;
-        console.log(userPlayer);
+        const dataToCreate = {playerID, color};
+        console.log(dataToCreate)
+        await createBandvagn(dataToCreate)
         showLoginCreate("create-account-container");
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
     }
 }
 
-async function createBandvagn() {
-    const playerID = document.getElementById('username-input-band').value;
-    const color = document.getElementById('color-input-band').value;
+async function createBandvagn(createAccountData = null) {
+    let createDetails;
+    if (createAccountData === null) {
+        const playerID = document.getElementById('username-input-band').value;
+        const color = document.getElementById('color-input-band').value;
 
-    const createDetails = {playerID : playerID, color : color, user_id : currentUserID};
+        createDetails = {playerID : playerID, color : color, user_id : currentUserID};
+    } else {
+        createDetails = {playerID : createAccountData.playerID, color : createAccountData.color};
+    }
+    
     try {
         const response = await fetch(`${APIendpoint}/createKfKbandvagn`, {method: "PATCH", headers: {
             'Content-Type': 'application/json'
@@ -235,12 +318,20 @@ async function createBandvagn() {
         
         userPlayer = players.find(player => player.uuid == data.data.uuid);
         userPlayer.color = data.data.color;
-        offsetX = (userPlayer.position.column-2) * cellSize;
-        offsetY = (userPlayer.position.row-2) * cellSize;
+        userPlayer.playerID = data.data.playerID;
         document.getElementById('range-text').innerHTML = userPlayer.range;
         document.getElementById('lives-text').innerHTML = userPlayer.lives;
+        document.getElementById('tokens-text').innerHTML = userPlayer.tokens;
         console.log(userPlayer);
-        showLoginCreate("create-band-container");
+        if (userPlayer.lives <= 0) {displayMessage("player-dead")}
+        if (createAccountData === null) {showLoginCreate("create-band-container");}
+        resetCanvasPos();
+        reloadPlayerImage(userPlayer);
+        
+        document.getElementById('signed-in-dropdown').style.display = 'grid';
+        document.getElementById('not-signed-in-dropdown').style.display = 'none';
+        document.getElementById('logout-button').style.display = 'inline-block';
+        document.getElementById('show-login-button').style.display = 'none';
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
     }
@@ -254,145 +345,23 @@ async function getPlayerData() {
         throw new Error('Network response was not ok');
         }
         const data = await response.json();
-        
+        const playerData = data.playerData;
+        const boardData = data.boardData;
         console.log('API res:',data);
+
         // console.log('Position', data[1], data[1]['position'], data[1]['position']['column'])
-        players = data;
+        players = playerData;
         document.querySelectorAll('#free-wagons').forEach(t => {
             t.innerHTML = players.filter(player => player.taken_tank === false).length;
         })
+
+        gameCols = boardData.size.columns;
+        gameRows = boardData.size.rows;
+        gameShrink = boardData.shrink;
+        resizeCanvas();
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
     }
-}
-
-async function getPlayerTestData() {
-    const data = [
-        {
-            "playerID": "No-player",
-            "uuid": "b326dfd9-550a-41ff-ad57-037751c09238",
-            "tokens": 0,
-            "position": {
-                "row": 3,
-                "column": 1
-            },
-            "lives": 3,
-            "range": 2,
-            "color": "4281f9"
-        },
-        {
-            "playerID": "No-player",
-            "uuid": "afcd5cd2-7e0b-4b44-a0ba-9bbd39289437",
-            "tokens": 0,
-            "position": {
-                "row": 3,
-                "column": 8
-            },
-            "lives": 3,
-            "range": 2,
-            "color": "f13ed2"
-        },
-        {
-            "playerID": "No-player",
-            "uuid": "91be22ab-28a1-46e6-8db7-57ac4cf9e36b",
-            "tokens": 0,
-            "position": {
-                "row": 7,
-                "column": 4
-            },
-            "lives": 3,
-            "range": 2,
-            "color": "e44c1d"
-        },
-        {
-            "playerID": "No-player",
-            "uuid": "b06351af-b0c4-4d0f-8e7b-8eba6ee12c66",
-            "tokens": 0,
-            "position": {
-                "row": 8,
-                "column": 2
-            },
-            "lives": 3,
-            "range": 2,
-            "color": "b42b69"
-        },
-        {
-            "playerID": "No-player",
-            "uuid": "07f62461-4615-46b0-ae3e-0b1d35269798",
-            "tokens": 0,
-            "position": {
-                "row": 10,
-                "column": 1
-            },
-            "lives": 3,
-            "range": 2,
-            "color": "8756d4"
-        },
-        {
-            "playerID": "Laban",
-            "uuid": "868d0249-f196-4095-9425-6664c1a53f2b",
-            "tokens": 0,
-            "position": {
-                "row": 2,
-                "column": 9
-            },
-            "lives": 3,
-            "range": 2,
-            "color": "#330aff"
-        },
-        {
-            "playerID": "Laban",
-            "uuid": "1a4485d4-acba-4cbe-ad40-4d4130dad51e",
-            "tokens": 0,
-            "position": {
-                "row": 4,
-                "column": 3
-            },
-            "lives": 3,
-            "range": 2,
-            "color": "#12ce36"
-        },
-        {
-            "playerID": "Laban",
-            "uuid": "f3d0b901-feea-45b6-a51a-214169f18718",
-            "tokens": 0,
-            "position": {
-                "row": 1,
-                "column": 4
-            },
-            "lives": 3,
-            "range": 2,
-            "color": "#12ce36"
-        },
-        {
-            "playerID": "Laban12",
-            "uuid": "8c22d2cc-4c80-4a0a-8fa4-0c6a5a3bc0ab",
-            "tokens": 0,
-            "position": {
-                "row": 8,
-                "column": 9
-            },
-            "lives": 3,
-            "range": 2,
-            "color": "#12ce36"
-        },
-        {
-            "playerID": "ee",
-            "uuid": "0b7691ad-6550-43f0-8e5b-897b342c8a78",
-            "tokens": 0,
-            "position": {
-                "row": 0,
-                "column": 3
-            },
-            "lives": 3,
-            "range": 2,
-            "color": "#12ce36"
-        }
-    ];
-    console.log('API res:',data);
-    // console.log('Position', data[1], data[1]['position'], data[1]['position']['column'])
-    players = data;
-    document.getElementById('free-wagons').innerHTML = players.filter(player => player.playerID == "No-player").length;
 }
 
 async function movePlayer (button) {
@@ -441,6 +410,10 @@ async function movePlayer (button) {
 }
 
 async function doAction(action, moveDirection = null) {
+    if (userPlayer.lives <= 0) {
+        console.warn("You are dead cant do actions :(");
+    }
+
     const tokensNeededObj = {'move': 1, 'shot': 1, 'range': 3, 'life' : 3};
     let target_player = null;
     switch (action) {
@@ -451,6 +424,13 @@ async function doAction(action, moveDirection = null) {
         case 'shot': {
             if (tokensNeededObj[action] > userPlayer.tokens) {console.warn("Too few tokens"); return}
             target_player = selectedCell.selectedPlayer.uuid;
+            if (target_player === userPlayer.uuid) {console.warn("Cant shoot yourself"); return}
+            if (selectedCell.selectedPlayer.lives <= 0) {console.warn("Player is already dead"); displayMessage("player_already_dead"); return}
+            // Get distance client-side
+            const selPos = userPlayer.position;
+            const targPos = selectedCell.selectedPlayer.position;
+            const dist = Math.max(Math.abs(selPos.column-targPos.column), Math.abs(selPos.row-targPos.row));
+            if (dist > userPlayer.range) {console.warn("Not in range", dist); return}
             break;
         }
         case 'range': { 
@@ -479,32 +459,38 @@ async function doAction(action, moveDirection = null) {
             'Content-Type': 'application/json'
         }, body: JSON.stringify(dataToSend)});
 
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
         const data = await response.json();
+
+        if (!response.ok) {
+            displayError(data.error);
+            throw new Error(`Network response was not ok ${data.error}`);
+        }
         console.log(data.updatedData, data.shotData);
         // Update user
         userPlayer.position = data.updatedData.position;
         userPlayer.lives = data.updatedData.lives;
         userPlayer.range = data.updatedData.range;
-        if (userPlayer.uuid === selectedCell.selectedPlayer.uuid) {handleCellClick(userPlayer.position.row, userPlayer.position.column)}
-
+        userPlayer.tokens = data.updatedData.tokens;
         document.getElementById('range-text').innerHTML = userPlayer.range;
         document.getElementById('lives-text').innerHTML = userPlayer.lives;
+        document.getElementById('tokens-text').innerHTML = userPlayer.tokens;
+        console.log(userPlayer.range, userPlayer.lives)
+
+        if (selectedCell != undefined && userPlayer.uuid === selectedCell.selectedPlayer.uuid) {handleCellClick(userPlayer.position.row, userPlayer.position.column)}
+        
         if (data.shotData) {
             // Update targeted player
             const p = selectedCell.selectedPlayer.position;
-            selectedCell.explosion = new explosion(p.row, p.column, 'explosion')
+            selectedCell.bullet = new bullet(userPlayer.position.column, userPlayer.position.row, p.column, p.row);
             selectedCell.selectedPlayer.lives = data.shotData.lives;
             showPopup(p.column, p.row, selectedCell.selectedPlayer);
+            reloadPlayerImage(selectedCell.selectedPlayer);
         }
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
     }
 
 }
-
 
 // Sign up a new user
 const signUp = async (email, password) => {
@@ -527,9 +513,119 @@ const signIn = async (email, password) => {
     } else {
         user = data.user;
         console.log('User signed in:', user);
+        setCookie("email", email, 7); // Valid for 7 days
+        // setCookie("password", password, 7);
+        console.log("Kaka sparad");
         return { user, error };
     }
 };
+
+// Cookies & local storage
+function getCookie() {
+    const email = getCookieValue("email");
+    // const password = getCookieValue("password");
+
+    if (email) {
+      document.getElementById("email-input-login").value = email;
+      console.log("Cookies found!");
+    } else {
+        console.log("No cookie data found! :(");
+    }
+}
+// Helper to get a cookie
+function getCookieValue(name) {
+    const cookies = document.cookie.split("; ");
+    for (const cookie of cookies) {
+        const [key, value] = cookie.split("=");
+        if (key === name) return decodeURIComponent(value);
+    }
+    return null;
+}
+function setCookie(name, value, days) {
+    const date = new Date();
+    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${date.toUTCString()}; path=/`;
+}
+
+function setLocalStorage(key, value) {
+    if (typeof value === "object") {
+      localStorage.setItem(key, JSON.stringify(value));
+    } else {
+      localStorage.setItem(key, value);
+    }
+}
+function getLocalStorage(key) {
+    const storedValue = localStorage.getItem(key);
+    try {
+        // parse as JSON
+        return JSON.parse(storedValue);
+    } catch (e) {
+        // If not JSON, return as string
+        return storedValue;
+    }
+}
+
+async function preloadImages() {
+    loadObjectToPixels();
+    const orgPixels = preloadedPixels;
+    const lightnessVals = [];
+    for (let i = 0; i < orgPixels.length; i += 4) {
+        const lightness = orgPixels[i] / 255;
+        // Update pixel values
+        lightnessVals.push(Math.min(lightness*100,80));
+    }
+
+    const worker = new Worker('worker.js');
+    worker.onmessage = function (e) {
+        const { pixels } = e.data;
+        createImageFromPixels(pixels);
+    };
+
+    for (const player of players) {
+        worker.postMessage({ preloadedPixels: orgPixels, player, lightnessVals });
+    }
+}
+
+function createImageFromPixels(pixels, player = null) {
+    const imageWidth = 16;
+    const imageHeight = 24;
+
+    const imageData = new ImageData(new Uint8ClampedArray(pixels), imageWidth, imageHeight);
+    const transformedCanvas = document.createElement('canvas');
+    transformedCanvas.width = imageWidth;
+    transformedCanvas.height = imageHeight;
+    const transformedContext = transformedCanvas.getContext('2d');
+    transformedContext.imageSmoothingEnabled = false;
+    transformedContext.putImageData(imageData, 0, 0);
+
+    if (player === null) {
+        preloadedImages.push(transformedCanvas);
+    }
+    else {
+        const playerIndex = players.findIndex(p => p.uuid === player.uuid);
+        console.log("Updating player at index:", playerIndex)
+        preloadedImages[playerIndex] = transformedCanvas;
+    }
+}
+
+function reloadPlayerImage(player) {
+    console.log("Tries to reaload player: ", player)
+    const worker = new Worker('worker.js');
+    const orgPixels = preloadedPixels;
+
+    worker.onmessage = function (e) {
+        const { pixels } = e.data;
+        createImageFromPixels(pixels, player);
+    };
+
+    const lightnessVals = [];
+    for (let i = 0; i < orgPixels.length; i += 4) {
+        const lightness = orgPixels[i] / 255;
+        lightnessVals.push(Math.min(lightness * 100, 80));
+    }
+
+    worker.postMessage({ preloadedPixels: orgPixels, player, lightnessVals });
+}
 
 // Initialize Supabase
 const supabaseUrl = 'https://swndedfdvpclvugxjetp.supabase.co';  // Supabase URL
@@ -537,7 +633,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // Ändra till https://webmasteriet.vercel.app
-const APIendpoint = "https://webmasteriet.vercel.app";
+const APIendpoint = "http://localhost:3333";
 const ratio = Math.ceil(window.devicePixelRatio);
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -546,8 +642,9 @@ const popup = document.getElementById('popup');
 const signInStatusText = document.getElementById('signed-in-status');
 
 // Canvas settings
-const gameRows = 100;
-const gameCols = 100;
+let gameRows = 100;
+let gameCols = 100;
+let gameShrink = 1;
 const nodeColor = "#007bff";
 const selectedNodeColor = "#e03b4b";
 const gridColor = "#cccccc";
@@ -558,62 +655,56 @@ let zoomLevel = 1;
 let offsetX = 0; // Pan offset
 let offsetY = 0;
 
-let isPanning = false;
-let moved = false;
-let startX, startY;
-
 // Players
 let players = [];
 let userPlayer = null;
 let selectedCell = null;
 let currentUserID = 0;
 
-let gameMode = 'i'; // 'i' investigate, 'a' action
 
 // Timers and other
 let timeoutPopup, timeoutSelectedCell, errorTimer;
 
-
-const svgData = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="800px" height="800px" viewBox="0 0 1024 1024">
-    <path d="M512 301.2m-10 0a10 10 0 1 0 20 0 10 10 0 1 0-20 0Z" fill="#E73B37" />
-    <path d="M400.3 744.5c2.1-0.7 4.1-1.4 6.2-2-2 0.6-4.1 1.3-6.2 2z m0 0c2.1-0.7 4.1-1.4 6.2-2-2 0.6-4.1 1.3-6.2 2z" fill="#39393A" />
-    <path d="M511.8 256.6c24.4 0 44.2 19.8 44.2 44.2S536.2 345 511.8 345s-44.2-19.8-44.2-44.2 19.9-44.2 44.2-44.2m0-20c-35.5 0-64.2 28.7-64.2 64.2s28.7 64.2 64.2 64.2 64.2-28.7 64.2-64.2-28.7-64.2-64.2-64.2z" fill="#E73B37" />
-    <path d="M730.7 529.5c0.4-8.7 0.6-17.4 0.6-26.2 0-179.6-86.1-339.1-219.3-439.5-133.1 100.4-219.2 259.9-219.2 439.5 0 8.8 0.2 17.5 0.6 26.1-56 56-90.6 133.3-90.6 218.7 0 61.7 18 119.1 49.1 167.3 30.3-49.8 74.7-90.1 127.7-115.3 
-    39-18.6 82.7-29 128.8-29 48.3 0 93.9 11.4 134.3 31.7 52.5 26.3 96.3 67.7 125.6 118.4 33.4-49.4 52.9-108.9 52.9-173.1 0-85.4-34.6-162.6-90.5-218.6zM351.1 383.4c9.2-37.9 22.9-74.7 40.6-109.5a502.1 502.1 0 0 1 63.6-95.9c17.4-20.6 36.4-39.9 56.8-57.5 20.4 17.6 39.4 36.9 56.8 57.5 24.8 29.5 46.2 61.8 63.6 95.9 17.7 34.8 31.4 71.6 40.6 109.5 8.7 35.8 13.5 72.7 14.2 109.9C637.4 459 577 438.9 512 438.9c-65 0-125.3 20.1-175.1 54.4 0.7-37.2 5.5-74.1 14.2-109.9z m-90.6 449.2c-9.1-27-13.7-55.5-13.7-84.4 0-35.8 7-70.6 20.8-103.2 8.4-19.8 19-38.4 31.9-55.5 9.7 61.5 29.5 119.7 57.8 172.6-36.4 17.8-69 41.6-96.8 70.5z m364.2-85.3c-0.7-0.3-1.5-0.5-2.2-0.8-0.4-0.2-0.9-0.3-1.3-0.5-0.6-0.2-1.3-0.5-1.9-0.7-0.8-0.3-1.5-0.5-2.3-0.8-0.8-0.3-1.5-0.5-2.3-0.7l-0.9-0.3c-1-0.3-2.1-0.7-3.1-1-1.2-0.4-2.4-0.7-3.5-1.1l-3-0.9c-0.2-0.1-0.4-0.1-0.7-0.2-1.1-0.3-2.3-0.7-3.4-1-1.2-0.3-2.4-0.6-3.5-0.9l-3.6-0.9-3.6-0.9c-1-0.3-2.1-0.5-3.1-0.7-1.2-0.3-2.4-0.5-3.6-0.8-1.3-0.3-2.5-0.6-3.8-0.8h-0.3c-0.9-0.2-1.9-0.4-2.8-0.6-0.4-0.1-0.7-0.1-1.1-0.2-1.1-0.2-2.2-0.4-3.4-0.6-1.2-0.2-2.4-0.4-3.6-0.7l-5.4-0.9c-0.9-0.1-1.9-0.3-2.8-0.4-0.8-0.1-1.6-0.3-2.5-0.4-2.6-0.4-5.1-0.7-7.7-1-1.2-0.1-2.3-0.3-3.5-0.4h-0.4c-0.9-0.1-1.8-0.2-2.8-0.3-1.1-0.1-2.1-0.2-3.2-0.3-1.7-0.2-3.4-0.3-5.1-0.4-0.8-0.1-1.5-0.1-2.3-0.2-0.9-0.1-1.9-0.1-2.8-0.2-0.4 0-0.8 0-1.2-0.1-1.1-0.1-2.1-0.1-3.2-0.2-0.5 0-1-0.1-1.5-0.1-1.3-0.1-2.6-0.1-3.9-0.1-0.8 0-1.5-0.1-2.3-0.1-1.2 0-2.4 0-3.5-0.1h-13.9c-2.3 0-4.6 0.1-6.9 0.2-0.9 0-1.9 0.1-2.8 0.1-0.8 0-1.5 0.1-2.3 0.1-1.4 0.1-2.8 0.2-4.1 0.3-1.4 0.1-2.7 0.2-4.1 0.3-1.4 0.1-2.7 0.2-4.1 0.4-0.6 0-1.2 
-    0.1-1.8 0.2l-7.8 0.9c-1.1 0.1-2.1 0.3-3.2 0.4-1 0.1-2.1 0.3-3.1 0.4-3.2 0.5-6.4 0.9-9.5 1.5-0.7 0.1-1.4 0.2-2.1 0.4-0.9 0.1-1.7 0.3-2.6 0.5-1.1 0.2-2.3 0.4-3.4 0.6-0.9 0.2-1.7 0.3-2.6 0.5-0.4 0.1-0.8 0.1-1.1 0.2-0.7 0.1-1.4 0.3-2.1 0.4-1.2 0.3-2.4 0.5-3.6 0.8-1.2 0.3-2.4 0.5-3.6 0.8-0.2 0-0.4 0.1-0.6 0.1-0.5 0.1-1 0.2-1.5 0.4-1.1 0.3-2.3 0.6-3.5 0.9-1.3 0.3-2.5 0.6-3.8 1-0.4 0.1-0.9 0.2-1.4 0.4-1.3 0.4-2.7 0.7-4 1.1-1.5 0.4-3 0.9-4.6 1.3-1 0.3-2.1 0.6-3.1 1-2.1 0.6-4.1 1.3-6.2 2-0.7 0.2-1.4 0.5-2.1 0.7-15-27.5-27.4-56.4-37-86.2-11.7-36.1-19.2-73.6-22.5-111.6-0.6-6.7-1-13.3-1.3-20-0.1-1.2-0.1-2.4-0.1-3.6-0.1-1.2-0.1-2.4-0.1-3.6 0-1.2-0.1-2.4-0.1-3.6 0-1.2-0.1-2.4-0.1-3.7 18.8-14 39.2-25.8 61-35 36.1-15.3 74.5-23 114.1-23 39.6 0 78 7.8 114.1 23 21.8 9.2 42.2 20.9 61 35v0.1c0 1 0 1.9-0.1 2.9 0 1.4-0.1 2.8-0.1 4.3 0 0.7 0 1.3-0.1 2-0.1 1.8-0.1 3.5-0.2 5.3-0.3 6.7-0.8 13.3-1.3 20-3.3 38.5-11 76.5-23 113-9.7 30.3-22.3 59.4-37.6 87.1z m136.8 90.9a342.27 342.27 0 0 0-96.3-73.2c29.1-53.7 49.5-112.8 59.4-175.5 12.8 17.1 23.4 35.6 31.8 55.5 13.8 32.7 20.8 67.4 20.8 103.2 0 31-5.3 61.3-15.7 90z" fill="#39393A"/>
-    <path d="M512 819.3c8.7 0 24.7 22.9 24.7 60.4s-16 60.4-24.7 60.4-24.7-22.9-24.7-60.4 16-60.4 24.7-60.4m0-20c-24.7 0-44.7 36-44.7 80.4 0 44.4 20 80.4 44.7 80.4s44.7-36 44.7-80.4c0-44.4-20-80.4-44.7-80.4z" fill="#E73B37" />
-    </svg>`;
+// Best converter png-svg https://www.freeconvert.com/png-to-svg/
 const customColor = "#FFFFFF"; // Custom color
-
-let preloadedImage;
-const preloadSVG = () => {
-    const img = new Image();
-    const svgBlob = new Blob([svgData.replace('currentColor', customColor)], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(svgBlob);
-
-    img.onload = () => {
-        preloadedImage = img; // Store the loaded image
-        URL.revokeObjectURL(url); // Free memory
-    };
-    img.src = url;
-};
-preloadSVG();
-
+const imageRatio = 16/24;
+let preloadedPixels;
+let preloadedCanvas, preloadedContext;
+let preloadedImages = [];
 
 window.onload = async function () {
     // init Event listeners
     initEventListeners();
+    displayMessage();
     // Set canvas size to match the window
     resizeCanvas(); // Initial call
     window.addEventListener('resize', resizeCanvas);
     
+    //await new Promise(resolve => {update(); resolve()});
+    // Get old data meanwhile
+    //await preloadSVG();
     await getPlayerData();
+    
+    const startTime = performance.now();
+    await preloadImages();
+    console.log("Images gotten in", performance.now()-startTime, "ms")
+    //setLocalStorage("playerData", players);
+
     intervalID = setInterval(update, 1000/60);
 }
 
-function update() {
+let lastTime = performance.now();
+let calls;
+async function update() {
+    /*const currentTime = performance.now();
+    if (currentTime-lastTime >= 1000) {
+        console.log(currentTime-lastTime, "ms", "Calls: ", calls);
+        calls = 0;
+        lastTime = currentTime;
+    }
+    calls++;*/
     draw();
+    
 }
 
 // Draw the grid and nodes
@@ -641,31 +732,30 @@ function draw() {
         ctx.lineTo(x, gameRows * cellSize);
         ctx.stroke();
     }
+    // Draw shrink
+    ctx.fillStyle = "rgba(240,60,80,0.3)";
+    for (let i = 0; i <= gameRows-1; i++) {
+        for (let j = 0; j <= gameCols-1; j++) {
+            if (i < gameShrink || (gameRows-i) <= gameShrink || j < gameShrink || (gameCols-j) <= gameShrink) {
+                const y = i * cellSize;
+                const x = j * cellSize;
+                ctx.fillRect(x,y, cellSize, cellSize);
+            }
+        }
+    }
+    
     
     // Draw players
-    //console.log('Position', data[1], data[1]['position'], data[1]['position']['column'])
-
-    ctx.fillStyle = nodeColor;
     for (const player of players) {
-        let playerHex = `${player.color}`;
+        //let playerHex = `${player.color}`;
         const x = player.position.column * cellSize;
         const y = player.position.row * cellSize;
         
-        if (preloadedImage) {
-            const red = parseInt(playerHex.substring(1, 3), 16);
-            const green = parseInt(playerHex.substring(3, 5), 16);
-            const blue = parseInt(playerHex.substring(5, 7), 16);
-            
-            // Concatenate these codes into proper RGBA format
-            const opacity = 1;
-            ctx.fillStyle = `rgba(${red}, ${green}, ${blue}, ${opacity})`
-            ctx.drawImage(preloadedImage, x, y, cellSize, cellSize); // Use the preloaded image
-            ctx.globalCompositeOperation = 'source-atop';
-            ctx.fillRect(x+1, y+1, cellSize-2, cellSize-2);
-            ctx.globalCompositeOperation = 'source-over'; // Reset blending mode
+        if (preloadedImages[players.indexOf(player)] !== undefined) {
+            ctx.drawImage(preloadedImages[players.indexOf(player)], x+(cellSize*imageRatio/4), y+1, cellSize*imageRatio, cellSize-2);
         }
-        /*
-        ctx.beginPath();
+
+        /*ctx.beginPath();
         ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 5, 0, Math.PI * 2);
         ctx.fill();*/
     }
@@ -730,12 +820,18 @@ function draw() {
         if (selectedCell.explosion !== undefined) {
             selectedCell.explosion.updateParticles();
         }
+        if (selectedCell.bullet !== undefined) {
+            selectedCell.bullet.updateBullet();
+        }
     }
 
 
     // Show grid numbers
     ctx.textAlign = "center";
     ctx.font = `${10}px serif`;
+    if (zoomLevel > 10) {
+        ctx.font = `${100/zoomLevel}px serif`;
+    }
     ctx.fillStyle = "#000";
     for (let i = 0; i <= gameRows-1; i++) {
         ctx.fillText(i, -(Math.min(offsetX/zoomLevel,cellSize))+5, (i+0.5) * cellSize);
@@ -748,9 +844,8 @@ function draw() {
     if (selectedCell) {
         const rect = canvas.getBoundingClientRect();
         const { x: col, y: row } = selectedCell;
-        const canvasX = rect.left + col * cellSize * zoomLevel + offsetX;
+        const canvasX = rect.left + (col+0.5) * cellSize * zoomLevel + offsetX - 2;
         const canvasY = row * cellSize * zoomLevel + offsetY;
-        console.log();
         popup.style.left = `${canvasX}px`;
         popup.style.top = `${canvasY}px`;
         if (canvasX<rect.left || canvasY<0 || canvasY>rect.height || canvasX>(rect.left+rect.width)) {
@@ -766,79 +861,55 @@ function draw() {
 function handleCellClick(clickedRow, clickedColumn) {
     console.log(`Clicked cell: (${clickedRow}, ${clickedColumn})`);
     
-    switch (gameMode) {
-        case 'i': {
-            if (selectedCell !== null && selectedCell.x === clickedColumn && selectedCell.y === clickedRow) {
-                selectedCell = null;
-                popup.style.display = 'none';
-                return;
-            }
-            selectedCell = {x : clickedColumn, y : clickedRow}
-            
-            selectedCell.clickAnimation = new explosion(clickedRow, clickedColumn, 'click');
-            // See if there is any player at the pressed cell
-            let selectedPlayer = players.find(player => {
-                return player.position.row === selectedCell.y && player.position.column === selectedCell.x;
-            });
-
-            if (selectedPlayer !== undefined) {
-                //console.log("player selected", selectedPlayer);
-                // Get range limits 
-                const minRow = Math.max(clickedRow - selectedPlayer.range, 0);
-                const maxRow = Math.min(clickedRow + selectedPlayer.range, gameRows);
-                const minColumn = Math.max(clickedColumn - selectedPlayer.range, 0);
-                const maxColumn = Math.min(clickedColumn + selectedPlayer.range, gameCols);
-
-                let cellsInRange = [];
-                for (let row = minRow; row <= maxRow; row++) {
-                    for (let col = minColumn; col <= maxColumn; col++) {
-                        // Add cell object to the array
-                        cellsInRange.push({ x : col, y : row});
-                    }
-                }
-                selectedCell.cellsInRange = cellsInRange;
-                selectedCell.selectedPlayer = selectedPlayer;
-            }
-            /*clearTimeout(timeoutSelectedCell);
-            timeoutSelectedCell = setTimeout(() => {
-                selectedCell = null;
-            }, 5000);*/
-            // Show popup
-            showPopup(clickedColumn, clickedRow, selectedPlayer);
-            break;
-        }
-        case 'a': {
-            // Find all players within the range
-            const playersInRange = players.filter(player => {
-                const { row, column } = player.position;
-                return row >= minRow && row <= maxRow && column >= minColumn && column <= maxColumn;
-            });
-
-            // Log players in range
-            if (playersInRange.length > 0) {
-                console.log("Players within range:");
-                playersInRange.forEach(player => {
-                    console.log(`PlayerID: ${player.playerID}, Position: (${player.position.row}, ${player.position.column})`);
-                });
-            } else {
-                console.log("No players within range.");
-            }
-            break;
-        }
-        default: {
-            console.log("Unkown gameMode...");
-            break;
-        }
+    if (selectedCell !== null && selectedCell.x === clickedColumn && selectedCell.y === clickedRow) {
+        selectedCell = null;
+        popup.style.display = 'none';
+        return;
     }
+    selectedCell = {x : clickedColumn, y : clickedRow}
+    
+    selectedCell.clickAnimation = new explosion(clickedRow, clickedColumn, 'click');
+    // See if there is any player at the pressed cell
+    let selectedPlayer = players.find(player => {
+        return player.position.row === selectedCell.y && player.position.column === selectedCell.x;
+    });
+
+    if (selectedPlayer !== undefined) {
+        //console.log("player selected", selectedPlayer);
+        // Get range limits 
+        const minRow = Math.max(clickedRow - selectedPlayer.range, 0);
+        const maxRow = Math.min(clickedRow + selectedPlayer.range, gameRows);
+        const minColumn = Math.max(clickedColumn - selectedPlayer.range, 0);
+        const maxColumn = Math.min(clickedColumn + selectedPlayer.range, gameCols);
+
+        let cellsInRange = [];
+        for (let row = minRow; row <= maxRow; row++) {
+            for (let col = minColumn; col <= maxColumn; col++) {
+                // Add cell object to the array
+                cellsInRange.push({ x : col, y : row});
+            }
+        }
+        selectedCell.cellsInRange = cellsInRange;
+        selectedCell.selectedPlayer = selectedPlayer;
+        console.log(selectedCell.selectedPlayer.tokens);
+    }
+    /*clearTimeout(timeoutSelectedCell);
+    timeoutSelectedCell = setTimeout(() => {
+        selectedCell = null;
+    }, 5000);*/
+    // Show popup
+    showPopup(clickedColumn, clickedRow, selectedPlayer);
 }
 
 function initEventListeners() {
-    // Handle zoom
+    const zoomSpeed = 0.05;
+    let isPanning = false;
+    let moved = false;
+    let startPos, startX, startY;
+    // Handle mouse and touch on canvas
     canvas.addEventListener('wheel', (e) => {
-        //console.log("Zooming...");
         e.preventDefault();
 
-        const zoomSpeed = 0.05;
         const zoom = e.deltaY < 0 ? 1 + zoomSpeed : 1 - zoomSpeed;
 
         const mouseX = e.offsetX;
@@ -854,8 +925,7 @@ function initEventListeners() {
 
         draw();
     });
-    // Handle panning
-    let startPos;
+    
     canvas.addEventListener('mousedown', (e) => {
         //console.log("Start panning...");
         isPanning = true;
@@ -870,7 +940,7 @@ function initEventListeners() {
             const dy = e.clientY - startPos.y;
 
             if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
-                console.log("Panning...");
+                // console.log("Panning...");
                 moved = true; // Movement threshold to distinguish panning
 
                 offsetX = e.clientX - startX;
@@ -881,42 +951,135 @@ function initEventListeners() {
     });
 
     canvas.addEventListener('mouseup', (e) => {
-        //console.log("Stopped panning...");
         isPanning = false;
         if (!moved) {
-            const rect = canvas.getBoundingClientRect();
-            const canvasX = (e.clientX - rect.left - offsetX)/zoomLevel;
-            const canvasY = (e.clientY - rect.top - offsetY)/zoomLevel;
-
-            const col = Math.floor(canvasX / cellSize);
-            const row = Math.floor(canvasY / cellSize);
-
-            if (col >= 0 && col < gameCols && row >= 0 && row < gameRows) {
-                handleCellClick(row, col);
-            } else {
-                selectedCell = null;
-                popup.style.display = 'none';
-            }
+            handleCellClickAt(e.clientX, e.clientY);
         }
     });
+
     canvas.addEventListener('mouseleave', () => {
         //console.log("Stopped panning...");
         isPanning = false;
     });
 
-    // Others
-    /*gameModeRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            const selected = document.querySelector('input[name="mode"]:checked');
-            gameMode = selected.getAttribute("data-mode");
-        });
-    });*/
+    let lastTouchDistance = null; // For pinch-zoom
+    let zoomed = false;
+    // Handle touch events
+    canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            console.log("Start moving 1 finger");
+            // Single touch - start panning
+            const touch = e.touches[0];
+            startX = touch.clientX - offsetX;
+            startY = touch.clientY - offsetY;
+            startPos = { x: touch.clientX, y: touch.clientY }
+            moved = false;
+            zoomed = false;
+        } else if (e.touches.length === 2) {
+            console.log("Start zooming 2 fingers");
+            // Two fingers - start pinch zoom
+            lastTouchDistance = getTouchDistance(e.touches);
+        }
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+
+        if (e.touches.length === 1 && !zoomed) {
+            console.log("Panning 1 finger");
+            // Single touch - panning
+            const touch = e.touches[0];
+            dx = touch.clientX - startPos.x;
+            dy = touch.clientY - startPos.y;
+            if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                offsetX = touch.clientX - startX;
+                offsetY = touch.clientY - startY;
+                moved = true;
+            }
+            draw();
+        } else if (e.touches.length === 2 && lastTouchDistance !== null) {
+            console.log("Zooming 2 fingers");
+            zoomed = true;
+            // Two fingers - pinch zoom
+            const currentDistance = getTouchDistance(e.touches);
+            const zoom = currentDistance / lastTouchDistance;
+
+            const rect = canvas.getBoundingClientRect();
+            const touchX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+            const touchY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+            const canvasX = (touchX - offsetX) / zoomLevel;
+            const canvasY = (touchY - offsetY) / zoomLevel;
+
+            zoomLevel *= zoom;
+
+            offsetX = touchX - canvasX * zoomLevel;
+            offsetY = touchY - canvasY * zoomLevel;
+
+            lastTouchDistance = currentDistance;
+            draw();
+        }
+    });
+
+    canvas.addEventListener('touchend', (e) => {
+        
+        if (e.touches.length === 0) {
+            console.log("Stop touch 0 fingers");
+            // Check if it was a tap
+            // Click handled in mouseup event
+        } else if (e.touches.length === 1) {
+            console.log("Transition to 1 finger");
+            if (zoomed) {
+                // Update panning state for the remaining touch
+                const touch = e.touches[0];
+                startX = touch.clientX - offsetX;
+                startY = touch.clientY - offsetY;
+                zoomed = false; // Reset zoom flag
+            }
+            lastTouchDistance = null;
+        } else if (e.touches.length === 2) {
+            console.log("Stop touch 2 fingers");
+            lastTouchDistance = null;
+        }
+    });
+
+    // Utility functions
+    const getTouchDistance = (touches) => {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx**2 + dy**2);
+    };
+
+    const handleCellClickAt = (clientX, clientY) => {
+        const rect = canvas.getBoundingClientRect();
+        const canvasX = (clientX - rect.left - offsetX) / zoomLevel;
+        const canvasY = (clientY - rect.top - offsetY) / zoomLevel;
+
+        const col = Math.floor(canvasX / cellSize);
+        const row = Math.floor(canvasY / cellSize);
+
+        if (col >= 0 && col < gameCols && row >= 0 && row < gameRows) {
+            handleCellClick(row, col);
+        } else {
+            selectedCell = null;
+            popup.style.display = 'none';
+        }
+    };
+
+
+    // Other
+    document.querySelectorAll("#showPasswordBtn").forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.getAttribute('data-targetID');
+            showPassword(target);
+        })
+    });
 }
 
 function showPopup(col, row, player) {
     const rect = canvas.getBoundingClientRect();
     // TBD: Different popup depending on gameMode
-    const canvasX = rect.left + col * cellSize * zoomLevel + offsetX;
+    const canvasX = rect.left + (col+0.5) * cellSize * zoomLevel + offsetX;
     const canvasY = row * cellSize * zoomLevel + offsetY;
 
     popup.style.display = 'flex';
@@ -924,22 +1087,25 @@ function showPopup(col, row, player) {
     popup.style.top = `${canvasY}px`;
 
     const popupText = document.getElementById('popup-position-text');
+    const playerIdTxt = document.getElementById('popup-playerID-text');
     popupText.textContent = `(${col}, ${row})`;
+    if (player !== undefined) {
+        playerIdTxt.textContent = `${player.playerID}`;
+        playerIdTxt.style.display = "block"
+    } else {playerIdTxt.style.display = "none"}
+    
 
     if (player !== undefined && player !== userPlayer) {
         // Create elements in popup
         const health = document.getElementById('popup-health-text');
         health.textContent = `Liv: ${player.lives}`;
 
-        const btn = document.getElementById('popup-takeshot-button');
-
-        // Example interaction for the button
-        btn.addEventListener("click", () => {
-            console.log("Skjut!!");
-        });
+        if (currentUserID !== 0) {document.getElementById('popup-takeshot-button').style.display = 'block'}
+        else {document.getElementById('popup-takeshot-button').style.display = 'none'}
+        
         document.getElementById('popup-other-player-container').style.display = 'block';
         document.getElementById('move-user-container').style.display = 'none';
-    } else if (player == userPlayer) {
+    } else if (player == userPlayer && currentUserID !== 0) {
         console.log("Hey! Thats me");
         const moveCont = document.getElementById('move-user-container');
         moveCont.style.display = 'flex';

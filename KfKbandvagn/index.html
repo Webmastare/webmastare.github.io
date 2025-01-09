@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KfKbandvagn</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <!--<script src="https://cdn.jsdelivr.net/npm/canvg/dist/browser/canvg.min.js"></script>-->
     <script src="script.js" defer></script>
     <script src="animations.js" defer></script>
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="dropDownStyle.css" />
-    <script defer src="initDB.js"></script>
+    <script defer src="Preloading/initDB.js"></script>
 
     <link
       href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
@@ -23,43 +24,44 @@
       <div>
         <p><span id="signed-in-status">Ej Inloggad</span></p>
       </div>
-      <div class="mode-selector-container dropdown">
-        <button class="dropbtn">Uppgraderingar</button>
-        <div class="dropdown-content">
-          <div class="userinfo-container">
-            <p class="upgrade-dropdown" style="display: block">
-              Handlingspoäng: <span id="tokens-text">0</span> Hp
-            </p>
-            <div class="upgrade-dropdown">
-              <button
-                onclick="doAction('life')"
-                class="other-buttons"
-                id="upgrade-lives-button"
-              >
-                &#9825; <span id="lives-text">3</span>
-              </button>
-              <div class="upgrade-dropdown-content">
-                <p>Lägg till ett hjärta &#9825; <br /></p>
-                <hr />
-                <p>Kostar 3 Hp</p>
+      <div style="display: none" id="signed-in-dropdown">
+        <div class="mode-selector-container dropdown">
+          <button class="dropbtn">Uppgraderingar</button>
+          <div class="dropdown-content">
+            <div class="userinfo-container">
+              <p class="upgrade-dropdown" style="display: block">
+                Handlingspoäng: <span id="tokens-text">0</span> Hp
+              </p>
+              <div class="upgrade-dropdown">
+                <button
+                  onclick="doAction('life')"
+                  class="other-buttons"
+                  id="upgrade-lives-button"
+                >
+                  &#9825; <span id="lives-text">3</span>
+                </button>
+                <div class="upgrade-dropdown-content">
+                  <p>Lägg till ett hjärta &#9825; <br /></p>
+                  <hr />
+                  <p>Kostar 3 Hp</p>
+                </div>
+              </div>
+              <div class="upgrade-dropdown">
+                <button
+                  onclick="doAction('range')"
+                  class="other-buttons"
+                  id="upgrade-range-button"
+                >
+                  Räckvidd <span id="range-text">2</span>
+                </button>
+                <div class="upgrade-dropdown-content">
+                  <p>Utöka räckvidd med ett block</p>
+                  <hr />
+                  <p>Kostar 3 Hp</p>
+                </div>
               </div>
             </div>
-            <div class="upgrade-dropdown">
-              <button
-                onclick="doAction('range')"
-                class="other-buttons"
-                id="upgrade-range-button"
-              >
-                Räckvidd <span id="range-text">2</span>
-              </button>
-              <div class="upgrade-dropdown-content">
-                <p>Utöka räckvidd med ett block</p>
-                <hr />
-                <p>Kostar 3 Hp</p>
-              </div>
-            </div>
-          </div>
-          <!--<form action="" class="dropdown-form">
+            <!--<form action="" class="dropdown-form">
             <div class="dropdown-item">
               <input
                 type="radio"
@@ -83,8 +85,10 @@
           <a href="#">Link 1</a>
           <a href="#">Link 2</a>
           <a href="#">Link 3</a>-->
+          </div>
         </div>
       </div>
+      <div style="display: block" id="not-signed-in-dropdown"></div>
       <div class="login-create">
         <button
           onclick="showLoginCreate(this)"
@@ -92,6 +96,14 @@
           class="other-buttons"
         >
           Logga In
+        </button>
+        <button
+          style="display: none"
+          onclick="logOut()"
+          id="logout-button"
+          class="other-buttons"
+        >
+          Logga Ut
         </button>
         <button
           onclick="showLoginCreate(this)"
@@ -102,6 +114,8 @@
         </button>
       </div>
     </div>
+
+    <!-- Login - create forms-->
     <div class="input-data">
       <!--Login-->
       <div class="login-container hidden-login-container" id="login-container">
@@ -115,7 +129,6 @@
 
         <form action="javascript:logIn()">
           <p>Logga In</p>
-
           <div class="input-box">
             <input
               type="email"
@@ -134,7 +147,11 @@
               placeholder="Lösenord"
               required
             />
-            <i class="bx bxs-lock-alt"></i>
+            <i
+              id="showPasswordBtn"
+              data-targetID="password-input"
+              class="bx bxs-lock-alt"
+            ></i>
           </div>
 
           <button type="submit">Logga In</button>
@@ -214,7 +231,11 @@
               placeholder="Lösenord"
               required
             />
-            <i class="bx bxs-lock-alt"></i>
+            <i
+              id="showPasswordBtn"
+              data-targetID="password-input-create"
+              class="bx bxs-lock-alt"
+            ></i>
           </div>
           <p
             style="
@@ -253,11 +274,19 @@
         </form>
       </div>
     </div>
+    <!-- Messages above canvas -->
+    <div id="messages-container" class="messages-container">
+      <p id="dead-message">
+        Du är död läs mer om vad det innebär under
+        <a href="#rules-header" style="color: blue">regler</a>
+      </p>
+    </div>
 
     <div class="canvas-container" style="position: relative">
       <canvas id="canvas"></canvas>
       <div id="popup" class="popup" style="display: none">
         <p id="popup-position-text"></p>
+        <p id="popup-playerID-text"></p>
         <div id="popup-other-player-container">
           <p id="popup-health-text"></p>
           <button onclick="doAction('shot')" id="popup-takeshot-button">
@@ -285,8 +314,67 @@
       Återställ Position
     </button>
 
+    <h2 id="rules-header">SPELREGLER</h2>
     <div id="rules">
-      <p>Regler</p>
+      <div class="rule-container">
+        <h3>Startförhållanden</h3>
+        <p>
+          Varje spelare börjar på en slumpmässig plats på spelplanen med 3
+          hjärtan, 2 rutor i räckvidd och 0 Handlingspoäng (Hp).
+        </p>
+      </div>
+      <div class="rule-container">
+        <h3>Handlingspoäng (Hp)</h3>
+        <p>
+          Varje spelare får 1 Hp var 24:e timme. Tiden för utdelning varierar
+          dagligen.
+        </p>
+        <p style="text-align: center">Följande handlingar kostar Hp:</p>
+        <p style="margin-top: 2px">
+          • Flytta till en angränsande, ledig ruta (1 Hp). <br />
+          • Skjut en spelare inom räckhåll (1 Hp), vilket tar bort 1 hjärta.
+          <br />
+          • Lägg till ett hjärta (3 Hp). <br />
+          • Uppgradera räckvidd med 1 ruta (3 Hp).
+        </p>
+      </div>
+      <div class="rule-container">
+        <h3>Död och Återupplivning</h3>
+        <p>Spelare med 0 hjärtan elimineras.</p>
+        <p>Spelaren som eliminerar någon får deras återstående Hp.</p>
+        <p class="not-added-yet">
+          Döda spelare finns kvar på spelplanen. Döda spelare kan återupplivas
+          genom att få 1 hjärta, vilket ger dem 1 hjärta och 0 Hp.
+        </p>
+      </div>
+      <div class="rule-container">
+        <h3>Spelplanen</h3>
+        <p>
+          Slumpmässiga hjärtan dyker upp dagligen vid oförutsägbara tider. Den
+          första spelaren som kliver in på en ruta med ett hjärta får 1 hjärta.
+        </p>
+        <p class="not-added-yet">
+          Spelplanen krymper varannan dag, rutorna som försvinner kommer
+          indikeras 24h i förväg. Spelare utanför den nya gränsen förlorar 1
+          hjärta och flyttas till närmaste ruta innanför gränsen.
+        </p>
+      </div>
+      <div class="rule-container">
+        <h3>Gåvor</h3>
+        <p class="not-added-yet">
+          Spelare kan ge bort hjärtan eller Hp till andra spelare inom sin
+          räckvidd.
+        </p>
+      </div>
+      <div class="rule-container">
+        <h3>Spelets slut</h3>
+        <p>Spelet avslutas när 1 spelare eller lag återstår.</p>
+      </div>
+      <!--
+      <div class="rule-container">
+        <h3>Tips</h3>
+        <p>Hp är hemliga! Försök att dölja hur många Hp du har.</p>
+      </div>-->
     </div>
   </body>
 </html>

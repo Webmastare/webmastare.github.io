@@ -1,3 +1,7 @@
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     font-family: 'Courier New', Courier, monospace;
     text-align: center;
@@ -10,7 +14,7 @@ body {
     margin-bottom: 3%;
 }
 
-.input-data {
+.input-data, .messages-container {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -125,8 +129,20 @@ input[type=color]::-webkit-color-swatch-wrapper {
     font-size: medium;
 }
 
-#canvas {
+#showPasswordBtn {
+    cursor: pointer;
+}
+
+.messages-container p {
+    border: 2px solid rgb(26, 26, 26);
+    border-radius: 5px;
+    padding: 3px;
+}
+
+canvas {
     border: 1px solid rgb(0, 0, 0);
+    image-rendering: pixelated; /* Modern browsers */
+    image-rendering: crisp-edges; /* Fallback for older browsers */
 }
 
 .popup {
@@ -142,6 +158,7 @@ input[type=color]::-webkit-color-swatch-wrapper {
     transform: translate(-50%, -100%);
     pointer-events: none;
     font-size: 14px;
+    opacity: 0.9;
     -webkit-user-select: none;
     -khtml-user-select: none;
     -moz-user-select: none;
@@ -150,6 +167,16 @@ input[type=color]::-webkit-color-swatch-wrapper {
 }
 .popup button {
     pointer-events: all;
+    background: #fff;
+    border: 0px solid black;
+    border-radius: 5px;
+    margin: 1px;
+    padding: 2px 10px;
+    transition: all ease 100ms;
+}
+.popup button:hover {
+    filter: brightness(80%);
+    transform: translateY(-1px);
 }
 .popup p {
     margin: 0px;
@@ -159,4 +186,81 @@ input[type=color]::-webkit-color-swatch-wrapper {
     justify-content: center;
     align-items: center;
     flex-direction: column;
+}
+
+#rules {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 20px;
+  }
+  
+.rule-container {
+    font-family: auto;
+    position: relative;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+  
+.rule-container h3 {
+    margin-bottom: 10px;
+    font-size: 1.5em;
+    color: #333;
+}   
+
+.rule-container p {
+    margin-bottom: 0px;
+    line-height: 1.4;
+    color: #555;
+    background: #e7e7e7;
+    border-radius: 10px;
+    text-align: left;
+    padding-left: 15px;
+}
+  
+.rule-container::after {
+    content: '';
+    position: absolute;
+    padding: 8px;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, #0d7e14, #000000);
+    border-radius: 8px;
+    z-index: -1;
+    inset: -8px;
+    filter: blur(2px);
+}
+  
+.not-added-yet {position: relative; margin-top: 30px;}
+
+.not-added-yet div {
+  position: absolute;
+  content: '';
+  background: rgba(239, 13, 13, 0.4);
+  display: block;
+  width: 100%;
+  height: 10px;
+  rotate: -45deg; /* center the X vertically and horizontally: */
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+  border-radius: 5px;
+}
+.not-added-yet .left-cross {
+    rotate: 45deg;
+}
+.not-added-yet::before {
+    content: 'Kommer snart';
+    font-size: large;
+    font-weight: 700;
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    margin: auto;
 }
