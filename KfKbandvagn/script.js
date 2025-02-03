@@ -15,12 +15,14 @@ function resizeCanvas() {
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     canvas.style.width = `${canvasWidth}px`;
     canvas.style.height = `${canvasHeight}px`;
+    loggingContainer.style.width = `${canvasWidth}px`;
     //canvas.getContext('2d').setTransform(ratio, 0, 0, ratio, 0, 0);
 
     // Set canvas dimensions
     cellSize = STDcellSize;
     ctx.imageSmoothingEnabled = false;
     draw();
+    // Not added yet crosses
     fixCrosses();
 }
 
@@ -205,6 +207,54 @@ function displayMessage(messageId = "") {
     }
 }
 
+function displayLogs() {
+    
+    for (const log of gameLogs) {
+        const p = document.createElement('p')
+        let string = getLogString(log);
+        p.innerHTML = string;
+        loggingContainer.appendChild(p);
+    }
+}
+function getLogString(log) {
+    let string = `${formatTimestamp(log.timestamp)} - <span>${log.playerID}</span>`;
+    switch (log.action) {
+        case "shot": {
+            string += ` sköt ${log.details.targetUser} (${log.details.targetUserLives} hjärtan kvar)`
+            break;
+        }
+        case "move": {
+            string += ` flyttade från [${log.details.from.row}, ${log.details.from.column}] till [${log.details.to.row}, ${log.details.to.column}]`
+            break;
+        }
+        case "range": {
+            string += ` ökade sin räckvidd till ${log.details.range}`
+            break;
+        }
+        case "life": {
+            string += ` återhämtade ett hjärta till ${log.details.lives}`
+            break;
+        }
+        default:{
+            console.log("Unknown action", log)
+            break;
+        }
+    }
+    return string;
+}
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    
+    const year = date.getFullYear().toString().slice(-2); // Get only last two digits of the year
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 async function logIn() {
     const email = document.getElementById('email-input-login').value;
     const password = document.getElementById('password-input').value;
@@ -358,6 +408,7 @@ async function getPlayerData() {
         gameCols = boardData.size.columns;
         gameRows = boardData.size.rows;
         gameShrink = boardData.shrink;
+        gameLogs = boardData.logs;
         resizeCanvas();
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
@@ -640,11 +691,13 @@ const ctx = canvas.getContext('2d');
 const popup = document.getElementById('popup');
 //const gameModeRadios = document.querySelectorAll('input[name="mode"]')
 const signInStatusText = document.getElementById('signed-in-status');
+const loggingContainer = document.getElementById('logging-container');
 
 // Canvas settings
 let gameRows = 100;
 let gameCols = 100;
 let gameShrink = 1;
+let gameLogs;
 const nodeColor = "#007bff";
 const selectedNodeColor = "#e03b4b";
 const gridColor = "#cccccc";
@@ -684,7 +737,8 @@ window.onload = async function () {
     // Get old data meanwhile
     //await preloadSVG();
     await getPlayerData();
-    
+    displayLogs();
+
     const startTime = performance.now();
     await preloadImages();
     console.log("Images gotten in", performance.now()-startTime, "ms")

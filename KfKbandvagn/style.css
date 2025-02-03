@@ -133,6 +133,25 @@ input[type=color]::-webkit-color-swatch-wrapper {
     cursor: pointer;
 }
 
+#logging-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    border: 1px solid rgb(26, 26, 26);
+    margin: auto;
+    max-height: 20vh;
+    overflow: scroll;
+    margin-bottom: 20px;
+}
+#logging-container p {
+    background-color: #c2c2c2;
+    border-radius: 20px;
+    padding: 7px;
+    margin: 5px;
+    border: 1px solid black;
+}
+
 .messages-container p {
     border: 2px solid rgb(26, 26, 26);
     border-radius: 5px;
