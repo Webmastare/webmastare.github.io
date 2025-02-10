@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Snake</title>
+    <link rel="stylesheet" href="Snake.css" />
+    <link rel="stylesheet" href="controllerStyle.css" />
+    <script src="Snake.js" defer></script>
+
+    <link
+      href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <h1>Snake</h1>
+    <hr id="toprule" />
+
+    <div class="top-menu" style="padding: 0px 20px">
+      <div>
+        <div>Hastighet: <span id="speed-text">10</span> bps</div>
+      </div>
+
+      <div style="margin-left: 30px; display: flex; flex-direction: column">
+        <div>Mat: <span id="food-count-txt">1</span></div>
+      </div>
+
+      <div>
+        <label for="theme" style="padding: 10px">Tema</label>
+        <select id="theme">
+          <option value="light">Ljust</option>
+          <option value="dark">Mörkt</option>
+          <option value="kfkb">KfKb</option>
+        </select>
+      </div>
+      <!-- Wrap snake -->
+      <div
+        class="dropdown-container"
+        style="display: flex; flex-direction: row"
+      >
+        <label
+          class="description-header"
+          style="padding-left: 10px"
+          for="wrap-snake"
+          >Svep runt</label
+        >
+        <p class="dropdown">
+          Du dör inte av att åka in i kanten utan sveper runt planen.
+        </p>
+        <div class="checkbox-wrapper-12">
+          <div class="cbx">
+            <input id="wrap-snake" type="checkbox" />
+            <label for="cbx-12"></label>
+            <svg width="15" height="14" viewbox="0 0 15 14" fill="none">
+              <path d="M2 8.36364L6.23077 12L13 2"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <!-- Only L&R -->
+      <div
+        class="dropdown-container"
+        style="display: flex; flex-direction: row"
+      >
+        <label
+          class="description-header"
+          style="padding-left: 10px"
+          for="wrap-snake"
+          >Höger Vänster</label
+        >
+        <p class="dropdown">
+          Du svänger i riktningen ormen rör sig, höger eller vänster.
+        </p>
+        <div class="checkbox-wrapper-12">
+          <div class="cbx">
+            <input id="leftright-only" type="checkbox" />
+            <label for="cbx-12"></label>
+            <svg width="15" height="14" viewbox="0 0 15 14" fill="none">
+              <path d="M2 8.36364L6.23077 12L13 2"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <button
+          class="close-cont-button"
+          style="margin-left: 10px"
+          onclick="hideShowID('pre-settings')"
+        >
+          <i class="bx bx-cog"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Canvas and Presettings -->
+    <div class="canvas-container" style="position: relative">
+      <div
+        class="scores-container"
+        style="display: flex; align-items: center; justify-content: center"
+      >
+        <button class="controller" id="upControl" onclick="resetGame()">
+          <span class="controllerEdge"></span>
+          <span
+            style="padding: 2px 4px; padding-right: 3px"
+            class="controllerFront"
+            ><i class="bx bx-pause-circle" style="font-size: 25px"></i
+          ></span>
+        </button>
+
+        <p style="display: flex; margin-right: 20px">
+          Bästa: <span id="best-score">-</span>
+        </p>
+        <p style="display: flex; margin-right: 20px">
+          Poäng: <span id="score">0</span>
+        </p>
+      </div>
+
+      <div
+        class="pre-settings-container"
+        id="pre-settings"
+        style="display: none"
+      >
+        <h4>Inställningar</h4>
+        <div>
+          <button
+            class="close-cont-button"
+            style="position: absolute; top: 10px; right: 20px"
+            onclick="hideShowID('pre-settings')"
+          >
+            <i class="bx bx-x-circle"></i>
+          </button>
+        </div>
+        <div style="display: flex; flex-direction: column">
+          <label for="food-range"
+            >Mat: <span id="food-count-txt">1</span></label
+          >
+          <input
+            type="range"
+            name="food-range"
+            class="range-slider"
+            id="food-range"
+            min="1"
+            max="10"
+            value="1"
+          />
+        </div>
+        <div style="margin-top: 10px">
+          <label for="difficulty">Svårighetsgrad</label>
+          <select id="difficulty">
+            <option value="dynamic">Dynamisk</option>
+            <option value="easy">Lätt</option>
+            <option value="medium">Medel</option>
+            <option value="hard">Svår</option>
+            <option value="extreme">Extrem</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Canvas Wrapper-->
+      <div style="position: relative">
+        <canvas id="canvas"></canvas>
+
+        <div id="restart-popup" style="display: none">
+          <p>Du är död</p>
+          <button class="controller" id="upControl" onclick="resetGame()">
+            <span class="controllerEdge"></span>
+            <span class="controllerFront">Spela igen</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controllers -->
+    <div class="controllerContainer">
+      <div class="vertical">
+        <button
+          class="controller"
+          id="upControl"
+          onclick="controllerPress('up')"
+        >
+          <span class="controllerEdge"></span>
+          <span class="controllerFront">&#x2191;</span>
+        </button>
+        <div class="row">
+          <button
+            class="controller"
+            id="leftControl"
+            onclick="controllerPress('left')"
+          >
+            <span class="controllerEdge"></span>
+            <span class="controllerFront">&#x2190;</span>
+          </button>
+          <button
+            class="controller"
+            id="rightControl"
+            onclick="controllerPress('right')"
+          >
+            <span class="controllerEdge"></span>
+            <span class="controllerFront">&#x2192;</span>
+          </button>
+        </div>
+        <button
+          class="controller"
+          id="downControl"
+          onclick="controllerPress('down')"
+        >
+          <span class="controllerEdge"></span>
+          <span class="controllerFront">&#x2193;</span>
+        </button>
+      </div>
+    </div>
+  </body>
+</html>

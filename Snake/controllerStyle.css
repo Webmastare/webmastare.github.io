@@ -1,0 +1,68 @@
+.controller {
+    position: relative;
+    top: 10px;
+    background: transparent;
+    padding: 0px;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    width: auto;
+    margin: 3px;
+    transition: filter 250ms;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+  
+.controllerEdge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    border-radius: 8px;
+    background: linear-gradient(
+      to right,
+      hsl(120, 33%, 41%) 0%,
+      hsl(120, 33%, 48%) 8%,
+      hsl(120, 33%, 41%) 92%,
+      hsl(120, 33%, 31%) 100%
+    );
+}
+  
+.controllerFront {
+    display: block;
+    position: relative;
+    border-radius: 8px;
+    background: hsl(120, 33%, 41%);
+    padding: 16px 20px;
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+      Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: max(1.8vw, 16px);
+    transform: translateY(-4px);
+    transition: transform 600ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+  
+.controller:hover {
+    filter: brightness(110%);
+}
+  
+.controller:hover .controllerFront {
+    transform: translateY(-6px);
+    transition: transform 250ms cubic-bezier(0.3, 0.7, 0.4, 1.5);
+}
+  
+.controller:active .controllerFront {
+    transform: translateY(-2px);
+    transition: transform 34ms;
+}
+
+.row .controller {
+    margin-inline: 20px;
+}
+
+.hide-up-down-controller {
+    display: none;
+}
