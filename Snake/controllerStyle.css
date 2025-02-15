@@ -1,6 +1,5 @@
 .controller {
     position: relative;
-    top: 10px;
     background: transparent;
     padding: 0px;
     border: none;
@@ -66,3 +65,38 @@
 .hide-up-down-controller {
     display: none;
 }
+
+.verticalController {
+    background-color: var(--bg-color2);
+    color: var(--color2);
+    padding: 10px 0px;
+    padding-top: 14px;
+    border-radius: 20px;
+    border: 2px solid var(--color1);
+}
+
+
+
+/* Dropdown gamemode */
+.dropdown-gamemode {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .gamemode-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+  }
+  
+  .gamemode-content label {
+    display: block;
+    margin-top: 10px;
+  }
+  
+  .dropdown-gamemode:hover .gamemode-content {
+    display: block;
+  }

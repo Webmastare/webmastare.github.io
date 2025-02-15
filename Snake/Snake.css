@@ -1,7 +1,18 @@
 @import 'https://fonts.googleapis.com/css?family=Press+Start+2P';
+@import "https://fonts.googleapis.com/css2?family=Poppins:wght@500;800&display=swap";
+
+:root {
+    --bg-color1: #ffffff;
+    --bg-color2: #abbaab;
+    --color1: #121212;
+    --color2: #121212;
+}
+
 body {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Poppins', 'Courier New', Courier, monospace;
     text-align: center;
+    background-color: var(--bg-color1);
+    color: var(--color1);
 }
 
 hr {
@@ -10,7 +21,8 @@ hr {
 
 .top-menu {
     display: flex;
-    background-color: #acafab;
+    background-color: var(--bg-color2);
+    color: var(--color2);
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
@@ -18,6 +30,11 @@ hr {
     border-radius: 30px;
     margin-left: 20%;
     margin-right: 20%;
+    gap: 10px;
+}
+
+.top-menu div {
+    font-size: calc(10px + 1vw);
 }
 
 .range-slider {
@@ -53,11 +70,13 @@ hr {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 20px;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: #bababa;
+    background: transparent;
+    backdrop-filter: blur(4px) brightness(0.9);
     border-radius: 20px;
     box-shadow: 0px 0px 20px 5px;
     padding: 10px 20px;
@@ -206,4 +225,12 @@ stroke-dashoffset: 0;
 }
 .dropdown-container.dropdown-active .dropdown {
     display: block;
+}
+
+.description-header i {
+    transition: all 0.3s ease;
+}
+
+.dropdown-active .description-header i {
+    transform: rotate(180deg);
 }

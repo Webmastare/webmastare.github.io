@@ -33,6 +33,23 @@ function resetGame() {
     speedText.innerHTML = mode;
 }
 
+function darkModeToggle(theme) {
+    if (['dark', 'kfkb'].includes(theme)) {
+        document.documentElement.style.setProperty('--bg-color1', '#232323');
+        document.documentElement.style.setProperty('--bg-color2', '#363636');
+        document.documentElement.style.setProperty('--color1', '#b0b0b0');
+        document.documentElement.style.setProperty('--color2', '#c7c7c7');
+        darkMode = true;
+    } else if (theme == 'light') {
+        document.documentElement.style.setProperty('--bg-color1', '#ffffff');
+        document.documentElement.style.setProperty('--bg-color2', '#abbaab');
+        document.documentElement.style.setProperty('--color1', '#121212');
+        document.documentElement.style.setProperty('--color2', '#121212');
+        darkMode = false;
+    }
+    player.draw();
+}
+
 function hideShowID(targetID) {
     let target = document.getElementById(targetID);
     if (target.style.display == "none") {
@@ -229,14 +246,14 @@ class Player{
         ctx.fillStyle = theme[0];
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.strokeStyle = theme[1];
-        for (let r = 0; r < this.rows; r++) {
+        for (let r = 0; r <= this.rows; r++) {
             ctx.beginPath();
             ctx.moveTo(0, r*blockSize);
             ctx.lineTo(this.columns*blockSize, r*blockSize);
             ctx.lineWidth = 2;
             ctx.stroke();
         }
-        for (let c = 0; c < this.columns; c++) {
+        for (let c = 0; c <= this.columns; c++) {
             ctx.beginPath();
             ctx.moveTo(c*blockSize, 0);
             ctx.lineTo(c*blockSize, this.rows*blockSize);
@@ -473,6 +490,7 @@ const gameModes = {
 }
 
 let gameMode = "default";
+let darkMode = false;
 
 let mode = settings[difficulyDD.value];
 speedText.innerHTML = mode;
@@ -483,11 +501,16 @@ let snakeWrap = snakeWrapCB.checked;
 let leftRightOnly = leftrightCB.checked;
 
 let lastUpdate = performance.now();
-//canvas
+
 let player = new Player();
 let blockSize = 25;
-let fps = 30;
+let fps = 60;
 let lastDirection = { x: 0, y: 0};
+// Variables to store the starting touch coordinates
+let touchStartX = null;
+let touchStartY = null;
+// A minimum distance (in pixels) the touch must move to be considered a swipe.
+const threshold = 30;
 
 let topScore = getLocalStorage('topscore');
 bestScoreText.innerHTML = topScore != null ? topScore : "-"
@@ -521,7 +544,6 @@ window.onload = function() {
 
 function initElements() {
     document.addEventListener("keydown", function(e){
-        e.preventDefault();
         changeDirection(e);
     });
 
@@ -532,6 +554,19 @@ function initElements() {
         });
         player.foodAmount = value;
         player.placeFood();
+    });
+
+    // Listen for when the touch starts
+    canvas.addEventListener("touchstart", function(e) {
+        e.preventDefault();
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    });
+
+    // Listen for when the touch ends
+    canvas.addEventListener("touchend", function(e) {
+        e.preventDefault();
+        touchHandler(e);
     });
 
     // Difficulty change
@@ -545,6 +580,7 @@ function initElements() {
         const selectedValue = this.value;
         theme = themeColors[selectedValue];
         console.log('Selected theme:', selectedValue);
+        darkModeToggle(selectedValue);
     });
     snakeWrapCB.addEventListener('change', function() {
         const checked = this.checked;
@@ -556,8 +592,8 @@ function initElements() {
         leftRightOnly = checked;
         console.log('LeftRight:', checked);
 
-        const upBtn = document.getElementsByClassName('vertical')[0].children[0]
-        const downBtn = document.getElementsByClassName('vertical')[0].children[2]
+        const upBtn = document.getElementsByClassName('verticalController')[0].children[0]
+        const downBtn = document.getElementsByClassName('verticalController')[0].children[2]
 
         if (!upBtn.classList.contains('hide-up-down-controller')) {
             upBtn.classList.add('hide-up-down-controller');
@@ -596,6 +632,7 @@ function initElements() {
           container.classList.remove("dropdown-active");
         });
     });
+
 }
 
 function update() {
@@ -676,20 +713,25 @@ function checkGameOver() {
 function changeDirection(e) {
     if (!leftRightOnly) {
         if (e.code == "ArrowUp" && lastDirection.y != 1) {
+            e.preventDefault();
             player.velocityX = 0;
             player.velocityY = -1;
         } else if (e.code == "ArrowDown" && lastDirection.y != -1) {
+            e.preventDefault();
             player.velocityX = 0;
             player.velocityY = 1;
         } else if (e.code == "ArrowLeft" && lastDirection.x != 1) {
+            e.preventDefault();
             player.velocityX = -1;
             player.velocityY = 0;
         } else if (e.code == "ArrowRight" && lastDirection.x != -1) {
+            e.preventDefault();
             player.velocityX = 1;
             player.velocityY = 0;
         }
     } else {
         if (e.code == "ArrowLeft") {
+            e.preventDefault();
             if (player.velocityX+player.velocityY == 0) {
                 player.velocityX = -1;
                 return;
@@ -700,6 +742,7 @@ function changeDirection(e) {
             player.velocityX = newVelocityX;
             player.velocityY = newVelocityY;
         } else if (e.code == "ArrowRight") {
+            e.preventDefault();
             if (player.velocityX+player.velocityY == 0) {
                 player.velocityX = 1;
                 return;
@@ -711,6 +754,56 @@ function changeDirection(e) {
             player.velocityY = newVelocityY;
         }
     }    
+}
+
+function touchHandler(e) {
+    // Ensure that we have valid starting coordinates
+    if (touchStartX === null || touchStartY === null) return;
+
+    // Get the ending touch coordinates
+    let touchEndX = e.changedTouches[0].clientX;
+    let touchEndY = e.changedTouches[0].clientY;
+
+    // Calculate the difference between the start and end positions
+    let diffX = touchEndX - touchStartX;
+    let diffY = touchEndY - touchStartY;
+
+    // If the swipe is too short in both directions, ignore it
+    if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
+        // Reset for the next touch event
+        touchStartX = null;
+        touchStartY = null;
+        return;
+    }
+
+    // Determine whether the swipe is horizontal or vertical
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+        // Horizontal swipe detected
+        if (diffX > 0 && lastDirection.x !== -1) { 
+        // Swipe right
+        player.velocityX = 1;
+        player.velocityY = 0;
+        } else if (diffX < 0 && lastDirection.x !== 1) { 
+        // Swipe left
+        player.velocityX = -1;
+        player.velocityY = 0;
+        }
+    } else {
+        // Vertical swipe detected
+        if (diffY > 0 && lastDirection.y !== -1) { 
+        // Swipe down
+        player.velocityX = 0;
+        player.velocityY = 1;
+        } else if (diffY < 0 && lastDirection.y !== 1) { 
+        // Swipe up
+        player.velocityX = 0;
+        player.velocityY = -1;
+        }
+    }
+
+    // Reset the starting touch coordinates for the next swipe
+    touchStartX = null;
+    touchStartY = null;
 }
 
 function placeFood() {
