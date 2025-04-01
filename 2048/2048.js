@@ -3,6 +3,7 @@ const ctx = canvas.getContext("2d");
 const ratio = window.devicePixelRatio || 1;
 
 const slider = document.getElementById("board-size-slider");
+const gameOverText = document.getElementById("game-over");
 
 let darkMode = false;
 let useClassicColors = false;
@@ -108,6 +109,7 @@ function setupSlider() {
         sliderUpdater(size);
         resetGame();
     });
+    
     document.getElementById("dark-mode").addEventListener('change', function() {
         const element = document.body;
         element.classList.toggle("dark-mode");
@@ -175,6 +177,7 @@ function resetGame() {
     document.getElementById("score").innerText = score;
     initGame();
     resizeBoard();
+    gameOverText.style.display = "none";
 }
 
 function checkGameOver() {
@@ -290,7 +293,7 @@ function addRandomTile() {
         const [gameOver, message] = checkGameOver();
         if (gameOver) {
             console.error("Game Over! Your score: " + score);
-            localStorage.removeItem("2048GameState");
+            gameOverText.style.display = "block";
             return;
         }
         console.warn(message);

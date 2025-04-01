@@ -47,11 +47,21 @@
         <span id="saved-game-score"></span> Poäng
         <button id="load-game-button">Ladda</button>
       </div>
+
+      <button class="restart-button" onclick="resetGame()">Starta Om</button>
     </div>
 
     <h2>Poäng: <span id="score">0</span></h2>
-    <div>
+    <div class="game-container" style="position: relative">
       <canvas id="canvas"></canvas>
+      <div id="hud">
+        <div id="game-over">
+          <h2>Game Over</h2>
+          <button class="restart-button" onclick="resetGame()">
+            Starta Om
+          </button>
+        </div>
+      </div>
     </div>
   </body>
 </html>
