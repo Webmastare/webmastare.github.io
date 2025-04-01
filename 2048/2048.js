@@ -94,6 +94,7 @@ function initGame() {
 
 // Function to set up the slider for adjusting board dimensions
 function sliderUpdater(size) {
+    slider.value = size;
     rows = size;
     columns = size;
     document.getElementById("board-size-text").innerText = `${size} x ${size}`;
