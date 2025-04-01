@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2048</title>
+    <link rel="stylesheet" href="2048.css" />
+    <script src="2048.js" defer></script>
+  </head>
+
+  <body>
+    <h1>2048</h1>
+    <hr />
+    <h2>Inställningar</h2>
+    <div
+      style="
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div style="display: flex; flex-direction: column; align-items: center">
+        <label for="board-size-slider">
+          Dim (<span id="board-size-text">4</span>)
+        </label>
+        <div style="display: flex; gap: 10px; align-items: center">
+          <span id="slider-min">2</span>
+          <input
+            type="range"
+            id="board-size-slider"
+            min="2"
+            max="10"
+            value="4"
+          />
+          <span id="slider-max">10</span>
+        </div>
+      </div>
+      <input type="checkbox" id="dark-mode" />
+      <label for="dark-mode">Mörkt läge</label>
+
+      <div id="load-game-div">
+        Ladda ditt sparade spel? Du hade
+        <span id="saved-game-score"></span> Poäng
+        <button id="load-game-button">Ladda</button>
+      </div>
+    </div>
+
+    <h2>Poäng: <span id="score">0</span></h2>
+    <div>
+      <canvas id="canvas"></canvas>
+    </div>
+  </body>
+</html>
