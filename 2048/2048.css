@@ -43,6 +43,31 @@ hr {
     font-size: 16px;
 }
 
+.restart-button {
+    background-color: #16791a;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.restart-button:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.2);
+}
+.restart-button:active {
+    background-color: #1a9b1a;
+    transform: translateY(2px);
+}
+.restart-button:focus {
+    outline: none;
+}
+
 #load-game-div {
     display: none;
     /* A gradient that rotates smoothly */
