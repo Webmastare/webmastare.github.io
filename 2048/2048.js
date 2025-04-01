@@ -146,6 +146,8 @@ function setupTouch() {
             if (diffY > 0) slideDown();
             else slideUp();
         }
+
+        saveGame(); 
     });
 }
 
