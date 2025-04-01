@@ -15,27 +15,27 @@ let canvasWidth, canvasHeight;
 let touchStartX, touchStartY;
 
 const colors = {
-    0: ["#cdc1b5", "#5c5c5e"],
-    2: ["#eee4da", "#bbada0"],
-    4: ["#ece0ca", "#a39489"],
-    8: ["#f4b17a", "#f5ac5f"],
-    16: ["#f59575", "#f68d5b"],
-    32: ["#f57c5f", "#e65d3b"],
-    64: ["#f65d3b", "#c83410"],
-    128: ["#edce71", "#edc850"],
-    256: ["#edcc63", "#edc53f"],
-    512: ["#edc651", "#eec744"],
-    1024: ["#eec744", "#ecc230"],
-    2048: ["#ecc230", "#e6b800"],
-    4096: ["#3cb371", "#2e8b57"],
-    8192: ["#2e8b57", "#228b22"],
-    16384: ["#228b22", "#006400"],
-    32768: ["#006400", "#004d00"],
-    65536: ["#4682b4", "#4169e1"],
-    131072: ["#4169e1", "#0000ff"],
-    262144: ["#0000ff", "#00008b"],
-    524288: ["#00008b", "#00004b"],
-    default: ["#3c3a32", "#cdc1b5"],
+    0: ["#ffffff", "#e8f5e9"], // White and very light green
+    2: ["#e8f5e9", "#c8e6c9"], // Light green shades
+    4: ["#c8e6c9", "#a5d6a7"],
+    8: ["#a5d6a7", "#81c784"],
+    16: ["#81c784", "#66bb6a"],
+    32: ["#66bb6a", "#4caf50"],
+    64: ["#4caf50", "#43a047"],
+    128: ["#43a047", "#388e3c"],
+    256: ["#388e3c", "#2e7d32"],
+    512: ["#2e7d32", "#1b5e20"],
+    1024: ["#1b5e20", "#0d3b12"],
+    2048: ["#0d3b12", "#09270c"],
+    4096: ["#09270c", "#061b08"],
+    8192: ["#061b08", "#041204"],
+    16384: ["#041204", "#020a02"],
+    32768: ["#020a02", "#000000"], // Black
+    65536: ["#000000", "#000000"], // Black
+    131072: ["#000000", "#000000"], // Black
+    262144: ["#000000", "#000000"], // Black
+    524288: ["#000000", "#000000"], // Black
+    default: ["#ffffff", "#e8f5e9"], // Default to white and light green
 };
 
 class Tile {
@@ -58,9 +58,6 @@ class Tile {
 }
 
 function initGame() {
-    canvas.width = columns * (tileSize + gap) - gap;
-    canvas.height = rows * (tileSize + gap) - gap;
-
     board = Array.from({ length: rows }, () => Array(columns).fill(null).map(() => new Tile()));
 
     addRandomTile();
@@ -127,10 +124,10 @@ function setupTouch() {
 function resizeBoard() {
     const containerWidth = window.innerWidth * 0.9; // Leave some space on the screen
     const containerHeight = window.innerHeight * 0.8; // Leave some space on the screen
-    tileSize = Math.min(containerWidth / columns, containerHeight / rows) - 5/rows;
+    tileSize = Math.min(containerWidth / columns, containerHeight / rows) - (gap*2)/rows;
 
-    canvasWidth = tileSize * columns + 5;
-    canvasHeight = tileSize * rows + 5;
+    canvasWidth = tileSize * columns + gap;
+    canvasHeight = tileSize * rows + gap;
     canvas.width = canvasWidth * ratio;
     canvas.height = canvasHeight * ratio;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -232,7 +229,7 @@ function drawBoard() {
     ctx.fillRect(0, 0, 0, canvasHeight);
     
     ctx.strokeStyle = "#bbada0";
-    ctx.lineWidth = 5 * ratio;
+    ctx.lineWidth = (gap) * ratio;
     ctx.strokeRect(0, 0, canvasWidth, canvasHeight);
 
     for (let r = 0; r < rows; r++) {
