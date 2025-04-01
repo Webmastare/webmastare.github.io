@@ -3,6 +3,7 @@ const ctx = canvas.getContext("2d");
 const ratio = window.devicePixelRatio || 1;
 
 let darkMode = false;
+let useClassicColors = false;
 
 let board = [];
 let score = 0;
@@ -14,8 +15,31 @@ let canvasWidth, canvasHeight;
 
 let touchStartX, touchStartY;
 
-const colors = {
-    0: ["#ffffff", "#e8f5e9"], // White and very light green
+const classicColors = {
+    0: ["#cdc1b5", "#5c5c5e"],
+    2: ["#eee4da", "#bbada0"],
+    4: ["#ece0ca", "#a39489"],
+    8: ["#f4b17a", "#f5ac5f"],
+    16: ["#f59575", "#f68d5b"],
+    32: ["#f57c5f", "#e65d3b"],
+    64: ["#f65d3b", "#c83410"],
+    128: ["#edce71", "#edc850"],
+    256: ["#edcc63", "#edc53f"],
+    512: ["#edc651", "#eec744"],
+    1024: ["#eec744", "#ecc230"],
+    2048: ["#ecc230", "#e6b800"],
+    4096: ["#3cb371", "#2e8b57"],
+    8192: ["#2e8b57", "#228b22"],
+    16384: ["#228b22", "#006400"],
+    32768: ["#006400", "#004d00"],
+    65536: ["#4682b4", "#4169e1"],
+    131072: ["#4169e1", "#0000ff"],
+    262144: ["#0000ff", "#00008b"],
+    524288: ["#00008b", "#00004b"],
+    default: ["#3c3a32", "#cdc1b5"],
+};
+const kfkbColors = {
+    0: ["#eeeeee", "#dddddd"], // White and very light green
     2: ["#e8f5e9", "#c8e6c9"], // Light green shades
     4: ["#c8e6c9", "#a5d6a7"],
     8: ["#a5d6a7", "#81c784"],
@@ -44,6 +68,7 @@ class Tile {
     }
 
     draw(x, y) {
+        const colors = useClassicColors ? classicColors : kfkbColors;
         ctx.fillStyle = darkMode ? colors[this.value][1] : colors[this.value][0] || colors.default;
         ctx.fillRect(x+gap, y+gap, tileSize-gap, tileSize-gap);
 
@@ -86,6 +111,10 @@ function setupSlider() {
         const element = document.body;
         element.classList.toggle("dark-mode");
         darkMode = !darkMode;
+        drawBoard();
+    });
+    document.getElementById("classic-colors").addEventListener('change', function() {
+        useClassicColors = !useClassicColors;
         drawBoard();
     });
 }
