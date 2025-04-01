@@ -2,6 +2,8 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const ratio = window.devicePixelRatio || 1;
 
+const slider = document.getElementById("board-size-slider");
+
 let darkMode = false;
 let useClassicColors = false;
 
@@ -91,22 +93,20 @@ function initGame() {
 }
 
 // Function to set up the slider for adjusting board dimensions
+function sliderUpdater(size) {
+    rows = size;
+    columns = size;
+    document.getElementById("board-size-text").innerText = `${size} x ${size}`;
+    const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+    slider.style.setProperty("--progress", `${value}%`);
+}
 function setupSlider() {
-    const slider = document.getElementById("board-size-slider");
     sliderUpdater(rows);
     slider.addEventListener("input", (e) => {
         const size = parseInt(e.target.value);
         sliderUpdater(size);
         resetGame();
     });
-    function sliderUpdater(size) {
-        rows = size;
-        columns = size;
-        document.getElementById("board-size-text").innerText = `${size} x ${size}`;
-        const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
-        slider.style.setProperty("--progress", `${value}%`);
-    }
-
     document.getElementById("dark-mode").addEventListener('change', function() {
         const element = document.body;
         element.classList.toggle("dark-mode");
@@ -228,6 +228,7 @@ function loadGame() {
         score = gameState.score;
         board = gameState.board.map(row => row.map(value => new Tile(value)));
         document.getElementById("score").innerText = score;
+        sliderUpdater(rows);
         resizeBoard();
         drawBoard();
         console.log("Game loaded!");
